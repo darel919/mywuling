@@ -2,11 +2,12 @@
   "name": "dws-mywuling",
   "version": "1.0.0",
   "description": "DWS-myWULING web app",
+  "author": "darelisme",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node version.js &&  nuxt build",
-    "dev": "node version.js &&  nuxt dev",
+    "build": "node version.js && nuxt build",
+    "dev": "node version.js && nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -22,5 +23,8 @@
   },
   "devDependencies": {
     "daisyui": "^5.0.35"
+  },
+  "overrides": {
+    "vue": "latest"
   }
 }

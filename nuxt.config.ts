@@ -10,11 +10,16 @@ export default defineNuxtConfig({
       BASE_API_URL: 'https://api.darelisme.my.id/myWuling'
     }
   },
-
+  build: {
+    transpile: ['vue-router'],
+  },
   vite: {
     plugins: [
       tailwindcss(),
-    ]
+    ],
+    optimizeDeps: {
+      include: ['vue-router']
+    }
   },
 
   modules: ['@pinia/nuxt']
