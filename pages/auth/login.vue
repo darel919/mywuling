@@ -6,6 +6,7 @@
                 <div class="text-center mb-8">
                     <h1 class="text-3xl font-bold mb-2">Welcome to myWULING</h1>
                     <p class="text-base-content/60">Sign in to access your vehicle information</p>
+                    <NuxtLink to="/about" class="link link-primary text-sm mt-2 inline-block">Why this app?</NuxtLink>
                 </div>
 
                 <form @submit.prevent="handleLogin" class="space-y-6">
@@ -72,6 +73,10 @@
 <script setup>
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+
+useHead({
+    title: 'Login to dws-myWULING'
+})
 
 const username = ref('')
 const password = ref('')

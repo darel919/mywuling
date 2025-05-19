@@ -1,10 +1,12 @@
 {
-  "name": "nuxt-app",
+  "name": "dws-mywuling",
+  "version": "1.0.0",
+  "description": "DWS-myWULING web app",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
+    "build": "node version.js &&  nuxt build",
+    "dev": "node version.js &&  nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"

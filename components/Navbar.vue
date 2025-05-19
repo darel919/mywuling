@@ -9,8 +9,8 @@
             <template v-if="isLoading">
                 <div class="loading loading-spinner"></div>
             </template>
-            <template v-else-if="authStore.isAuthenticated && authStore.userData">
-                <NuxtLink to="/account" class="btn btn-ghost avatar">
+            <template v-else-if="authStore.isAuthenticated && authStore.userData">                
+                <NuxtLink to="/account" class="btn btn-ghost avatar tooltip" :data-tip="authStore.userData.userName">
                     <div class="w-10 rounded-full">
                         <img :src="authStore.userData.iconsPhoto" :alt="authStore.userData.userName" />
                     </div>

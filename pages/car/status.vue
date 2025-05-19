@@ -1,5 +1,5 @@
 <template>
-    <div class="container mx-auto p-4">
+    <div class="container py-4 px-6 sm:px-16 mx-auto  min-h-screen">
         <template v-if="loading && !carData">
             <!-- Skeleton Refresh Bar -->
             <div class="flex justify-between items-center mb-6">
@@ -100,31 +100,46 @@
                     <!-- Car Information -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
-                            <img :src="carData.car.information.car_picture" :alt="carData.car.information.car_name" class="w-full h-full object-cover mb-4 rounded" />
-                            <h2 class="card-title text-2xl">{{ carData.car.information.car_name }}</h2>
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <p class="font-bold">Model</p>
-                                    <p>{{ carData.car.information.modelName }}</p>
+                            <div class="relative w-full aspect-video mb-4">
+                                <img :src="carData.car.information.car_picture" 
+                                     :alt="carData.car.information.car_name" 
+                                     class="absolute inset-0 w-full h-full object-cover rounded" />
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <span v-if="carData.car.information.isEV" class="badge badge-primary">EV</span>
+                                <span v-if="carData.car.information.isIOV" class="badge badge-secondary">IOV</span>
+                            </div>
+                            <section class="card-title flex-col items-start">
+                                <p class="text-lg opacity-[0.3]">{{ carData.car.information.licensePlate || 'N/A' }}</p>
+                                <h2 class="text-2xl -mt-2">{{ carData.car.information.car_name }}</h2>
+                            </section>
+                            <div class="collapse bg-base-200 mt-4">
+                                <input type="checkbox" /> 
+                                <div class="collapse-title text-sm font-medium flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                    Vehicle Details
                                 </div>
-                                <div>
-                                    <p class="font-bold">VIN</p>
-                                    <p>{{ carData.car.information.vin }}</p>
+                                <div class="collapse-content bg-base-100"> 
+                                    <div class="grid grid-cols-2 gap-x-6 gap-y-4 py-2">
+                                        <div>
+                                            <p class="font-bold text-sm text-base-content/70">Model</p>
+                                            <p class="text-base-content">{{ carData.car.information.modelName }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-sm text-base-content/70">VIN</p>
+                                            <p class="text-base-content font-mono">{{ carData.car.information.vin }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-sm text-base-content/70">Delivery Date</p>
+                                            <p class="text-base-content">{{ new Date(carData.car.information.delivery_date).toLocaleDateString() }}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="font-bold">License Plate</p>
-                                    <p>{{ carData.car.information.licensePlate || 'N/A' }}</p>
-                                </div>
-                                <div>
-                                    <p class="font-bold">Delivery Date</p>
-                                    <p>{{ new Date(carData.car.information.delivery_date).toLocaleDateString() }}</p>
-                                </div>
-                            </div>                    <div class="flex gap-2 mt-4">
-                            <span v-if="carData.car.information.isEV" class="badge badge-primary">EV</span>
-                            <span v-if="carData.car.information.isIOV" class="badge badge-secondary">IOV</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
                     <!-- Status Information -->
                     <div class="space-y-4">
@@ -139,7 +154,8 @@
                                 <h3 class="card-title">Battery Status</h3>
                                 <div class="grid grid-cols-2 gap-4">                            
                                     <div class="col-span-2">
-                                        <p class="font-bold mb-2">Charge Level</p>                                <progress 
+                                        <p class="font-bold mb-2">Charge Level</p>                                
+                                        <progress 
                                             class="progress w-full" 
                                             :class="{
                                                 'progress-error': !carData.car.data.battery.charging && carData.car.data.battery.soc <= 20,
@@ -172,7 +188,12 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <p class="font-bold">Doors</p>
-                                        <p class="capitalize">{{ carData.car.data.car_status.door }}</p>
+                                        <p class="capitalize" :class="{
+                                            'text-warning': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.door !== 'locked',
+                                            'text-success': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.door === 'locked'
+                                        }">{{ carData.car.data.car_status.door }}</p>
                                     </div>
                                     <div>
                                         <p class="font-bold">Ignition</p>
@@ -180,15 +201,29 @@
                                     </div>
                                     <div>
                                         <p class="font-bold">Trunk</p>
-                                        <p class="capitalize">{{ carData.car.data.car_status.trunk_ajar }}</p>
+                                        <p class="capitalize" :class="{
+                                            'text-warning': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.trunk_ajar !== 'closed',
+                                            'text-success': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.trunk_ajar === 'closed'
+                                        }">{{ carData.car.data.car_status.trunk_ajar }}</p>
                                     </div>
                                     <div>
                                         <p class="font-bold">Windows</p>
-                                        <p class="capitalize">{{ carData.car.data.car_status.window_ajar }}</p>
+                                        <p class="capitalize" :class="{
+                                            'text-warning': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.window_ajar !== 'closed',
+                                            'text-success': carData.car.data.car_status.ignition === 'off' && 
+                                                          carData.car.data.car_status.window_ajar === 'closed'
+                                        }">{{ carData.car.data.car_status.window_ajar }}</p>
                                     </div>
                                     <div>
                                         <p class="font-bold">Lights</p>
-                                        <p>
+                                        <p :class="{
+                                            'text-success': carData.car.data.car_status.ignition === 'off' && 
+                                                          !carData.car.data.car_status.lights.lowBeam && 
+                                                          !carData.car.data.car_status.lights.highBeam
+                                        }">
                                             {{ carData.car.data.car_status.lights.lowBeam ? 'Low Beam On' : '' }}
                                             {{ carData.car.data.car_status.lights.highBeam ? 'High Beam On' : '' }}
                                             {{ !carData.car.data.car_status.lights.lowBeam && !carData.car.data.car_status.lights.highBeam ? 'Off' : '' }}
@@ -275,6 +310,15 @@ watch(() => carData.value, (newData) => {
     
     if (newData?.car?.information?.isEV || newData?.car?.information?.isIOV) {
         refreshInterval = setInterval(() => refreshData(false), 30000)
+    }
+}, { immediate: true })
+
+// Get car status data and watch for changes to update title
+watch(() => carData.value?.car?.information?.name, (carName) => {
+    if (carName) {
+        useHead({
+            title: `${carName} - dws-myWuling`
+        })
     }
 }, { immediate: true })
 

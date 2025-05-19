@@ -1,5 +1,5 @@
 <template>
-    <div class="container mx-auto p-4">
+    <div class="container py-4 px-6 sm:px-16 mx-auto  min-h-screen">
         <h1 class="text-2xl font-bold mb-6">My Account</h1>
         
         <template v-if="isLoading">
@@ -108,6 +108,15 @@
 const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(true)
+
+// Watch for userData changes to update page title
+watch(() => authStore.userData, (userData) => {
+    if (userData) {
+        useHead({
+            title: `${userData.userName}'s Account - dws-myWuling`
+        })
+    }
+}, { immediate: true })
 
 // Redirect if not authenticated
 onMounted(async () => {
