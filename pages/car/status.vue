@@ -147,8 +147,8 @@ const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const route = useRoute()
 
-const loading = ref(true) // Initial loading
-const refreshing = ref(false) // Separate state for refresh operations
+const loading = ref(true)
+const refreshing = ref(false)
 const error = ref(null)
 const carData = ref(null)
 let refreshInterval = null
@@ -188,24 +188,21 @@ async function refreshData(isInitial = false) {
 }
 
 onMounted(async () => {
-    await refreshData(true) // Pass true for initial load
+    await refreshData(true)
 })
 
 watch(() => carData.value, (newData) => {
-    // Set up or clear auto-refresh based on vehicle connectivity
     if (refreshInterval) {
         clearInterval(refreshInterval)
         refreshInterval = null
     }
     
     if (newData?.car?.information?.isEV || newData?.car?.information?.isIOV) {
-        // Only set up auto-refresh for connected vehicles
         refreshInterval = setInterval(() => refreshData(false), 30000)
     }
 }, { immediate: true })
 
 onUnmounted(() => {
-    // Clean up interval when component unmounts
     if (refreshInterval) {
         clearInterval(refreshInterval)
     }
