@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-base-200">
+    <div class="container py-4 px-6 sm:px-16 mx-auto min-h-screen flex items-center justify-center">
         <div class="card w-full max-w-md bg-base-100 shadow-xl">
             <div class="card-body">
                 <!-- Logo and Title -->

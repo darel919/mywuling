@@ -10,17 +10,24 @@ export const useAuthStore = defineStore('auth', {
     setAuth(jwt, userData) {
       this.jwt = jwt
       this.userData = userData
-      localStorage.setItem('jwt', jwt)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('jwt', jwt)
+      }
       this.isLoading = false
     },
     clearAuth() {
       this.jwt = null
       this.userData = null
-      localStorage.removeItem('jwt')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('jwt')
+      }
       this.isLoading = false
     },
     initAuth() {
-      const jwt = localStorage.getItem('jwt')
+      let jwt = null
+      if (typeof window !== 'undefined') {
+        jwt = localStorage.getItem('jwt')
+      }
       if (jwt) {
         this.jwt = jwt
         this.fetchUserData().finally(() => {
@@ -38,12 +45,10 @@ export const useAuthStore = defineStore('auth', {
             'Authorization': `${this.jwt}`
           }
         })
-        
         if (!response.ok) {
           this.clearAuth()
           throw new Error('Invalid token')
         }
-        
         const data = await response.json()
         this.userData = data
         return data

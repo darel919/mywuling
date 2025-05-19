@@ -22,5 +22,9 @@ export default defineNuxtConfig({
     }
   },
 
-  modules: ['@pinia/nuxt']
+  modules: [
+    '@pinia/nuxt',
+    '@nuxtjs/leaflet',
+    '@nuxtjs/color-mode'
+  ]
 })

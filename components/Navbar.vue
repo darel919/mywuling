@@ -1,25 +1,27 @@
 <template>
     <header class="navbar bg-base-100">
         <div class="navbar-start">
-            <NuxtLink to="/" class="btn btn-ghost normal-case text-xl">
+            <a href="/" class="btn btn-ghost normal-case text-xl">
                 <p>dws-myWuling</p>
-            </NuxtLink>
+            </a>
         </div>
-        <div class="navbar-end">
-            <template v-if="isLoading">
-                <div class="loading loading-spinner"></div>
-            </template>
-            <template v-else-if="authStore.isAuthenticated && authStore.userData">                
-                <NuxtLink to="/account" class="btn btn-ghost avatar tooltip" :data-tip="authStore.userData.userName">
-                    <div class="w-10 rounded-full">
-                        <img :src="authStore.userData.iconsPhoto" :alt="authStore.userData.userName" />
-                    </div>
-                </NuxtLink>
-            </template>
-            <template v-else-if="!authStore.isAuthenticated">
-                <button @click="goLogin" class="btn btn-primary">Login</button>
-            </template>
-        </div>
+       <ClientOnly>
+            <div class="navbar-end">
+                <template v-if="isLoading">
+                    <div class="loading loading-spinner"></div>
+                </template>
+                <template v-else-if="authStore.isAuthenticated && authStore.userData">                
+                    <NuxtLink to="/account" class="btn btn-ghost avatar tooltip" :data-tip="authStore.userData.userName">
+                        <div class="w-10 rounded-full">
+                            <img :src="authStore.userData.iconsPhoto" :alt="authStore.userData.userName" />
+                        </div>
+                    </NuxtLink>
+                </template>
+                <template v-else-if="!authStore.isAuthenticated">
+                    <button @click="goLogin" class="btn btn-primary">Login</button>
+                </template>
+            </div>
+       </ClientOnly>
     </header>
 </template>
 
