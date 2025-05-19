@@ -135,6 +135,27 @@
                                             <p class="font-bold text-sm text-base-content/70">Delivery Date</p>
                                             <p class="text-base-content">{{ new Date(carInfo?.car.delivery_date).toLocaleDateString() }}</p>
                                         </div>
+                                        <div class="col-span-2 mt-4">
+                                            <div v-if="manualBookState.loading" class="w-full flex items-center justify-center">
+                                                <button class="btn btn-outline btn-primary w-full" disabled>
+                                                    <span class="loading loading-spinner loading-sm mr-2"></span>
+                                                    Checking Manual Book...
+                                                </button>
+                                            </div>
+                                            <template v-else>
+                                                <a v-if="manualBookState.available" 
+                                                   :href="`${config.public.BASE_API_URL}/car/manual?carCode=${carInfo?.car.modelCode}&token=${authStore.jwt}`" 
+                                                   target="_blank"
+                                                   rel="noopener noreferrer" 
+                                                   class="btn btn-outline btn-primary w-full">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                                    </svg>
+                                                    Open Manual Book
+                                                </a>
+                                                <p v-else class="text-sm text-gray-500 text-center">Manual book is not available for this car.</p>
+                                            </template>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -209,9 +230,8 @@
                                         }">{{ carStatus?.car.car_status?.trunk_ajar }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-bold">Windows</p>
-                                        <p class="capitalize" :class="{
-                                            'text-warning': car_status?.ignition === 'off' && 
+                                        <p class="font-bold">Windows</p>                                        <p class="capitalize" :class="{
+                                            'text-warning': carStatus?.car.car_status?.ignition === 'off' && 
                                                           carStatus?.car.car_status?.window_ajar !== 'closed',
                                             'text-success': carStatus?.car.car_status?.ignition === 'off' && 
                                                           carStatus?.car.car_status?.window_ajar === 'closed'
@@ -268,7 +288,30 @@ const error = ref({
 })
 const carInfo = ref(null)
 const carStatus = ref(null)
+const manualBookState = ref({
+    loading: true,
+    available: false
+})
 let refreshInterval = null
+
+async function checkManualBookAvailability() {
+    if (!carInfo.value?.car?.modelCode) return
+
+    manualBookState.value.loading = true
+    try {
+        const response = await fetch(`${config.public.BASE_API_URL}/car/manual?carCode=${carInfo.value.car.modelCode}`, {
+            method: 'HEAD',
+            headers: {
+                'Authorization': `${authStore.jwt}`
+            }
+        })
+        manualBookState.value.available = response.ok
+    } catch (err) {
+        manualBookState.value.available = false
+    } finally {
+        manualBookState.value.loading = false
+    }
+}
 
 async function fetchCarInfo() {
     const vin = route.query.vin
@@ -292,6 +335,7 @@ async function fetchCarInfo() {
         }
         
         carInfo.value = await response.json()
+        await checkManualBookAvailability()
     } catch (err) {
         error.value.info = err.message
     } finally {
@@ -355,6 +399,13 @@ watch(() => carInfo.value?.car_name, (carName) => {
         useHead({
             title: `${carName} - dws-myWuling`
         })
+    }
+}, { immediate: true })
+
+// Watch for car model code changes to check manual book availability
+watch(() => carInfo.value?.car?.modelCode, (modelCode) => {
+    if (modelCode) {
+        checkManualBookAvailability()
     }
 }, { immediate: true })
 
