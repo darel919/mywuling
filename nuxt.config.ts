@@ -3,11 +3,14 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
+  ssr: false,
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
     public: {
-      BASE_API_URL: 'https://api.darelisme.my.id/myWuling'
+      BASE_API_URL: 'https://api.darelisme.my.id/myWuling',
+      DARELISME_URL: 'https://darelisme.my.id',
+      API_DARELISME_URL: 'https://api.darelisme.my.id',
     }
   },
   build: {

@@ -6,23 +6,38 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (typeof window === 'undefined') return
 
   const authStore = useAuthStore()
-  const publicPaths = ['/auth/login', '/about']
+  // Allow /auth/loginWithWulingID and its children as public
+  const publicPaths = ['/auth/login', '/auth', '/about', '/auth/loginWithWulingID']
 
-  // Always initialize authStore on navigation
-  if (typeof authStore.initAuth === 'function') {
-    authStore.initAuth()
+  // Support subroutes (e.g. /auth/loginWithWulingID/anything)
+  const isPublic = publicPaths.some(path => to.path === path || to.path.startsWith(path + '/'))
+  // Only initialize auth once - on first page load
+  if (!authStore.initialized && typeof authStore.initAuth === 'function') {
+    const maybePromise = authStore.initAuth()
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      await maybePromise
+    }
+    authStore.initialized = true
   }
 
-  // Wait for isLoading to become false
+  // Wait for isLoading to become false (hydration)
   let waited = 0
-  while (authStore.isLoading && waited < 2000) {
+  while (authStore.isLoading && waited < 4000) {
     await nextTick()
     await new Promise(r => setTimeout(r, 10))
     waited += 10
   }
 
-  // Only redirect if there is no jwt at all
-  if (!authStore.jwt && !publicPaths.includes(to.path)) {
-    return window.location.href = '/auth/login'
+  // Recompute isDwsAuthed after hydration
+  const isDwsAuthed = authStore.authType === 'dws' && !!authStore.userData
+
+  // Redirect authenticated users away from /auth/login
+  if ((authStore.isAuthenticated || isDwsAuthed) && to.path === '/auth/login') {
+    return navigateTo('/')
+  }
+
+  // Only redirect if there is no jwt at all and not a DWS user
+  if (!authStore.isAuthenticated && !isDwsAuthed && !isPublic) {
+    return navigateTo('/auth/login')
   }
 })

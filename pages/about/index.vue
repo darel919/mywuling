@@ -23,6 +23,6 @@ definePageMeta({
 })
 
 useHead({
-    title: 'Why dws-myWULING instead of myWuling?'
+    title: 'Why dws-myWULING instead of dws-myWULING?'
 })
 </script>

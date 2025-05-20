@@ -8,9 +8,11 @@
                         <LTileLayer
                             :key="isDark"
                             :url="isDark 
-                                ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
-                                : 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png'"
-                            :attribution="'&copy; <a href=&quot;https://stadiamaps.com/&quot;>Stadia Maps</a>, &copy; <a href=&quot;https://openmaptiles.org/&quot;>OpenMapTiles</a> &copy; <a href=&quot;https://www.openstreetmap.org/copyright&quot;>OpenStreetMap</a>'"
+                                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'"
+                            :attribution="isDark 
+                                ? `&copy; <a href='https://carto.com/attributions'>CARTO</a> &copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>`
+                                : `&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors`"
                             layer-type="base"
                             :name="isDark ? 'Dark Map' : 'Light Map'">
                         </LTileLayer>

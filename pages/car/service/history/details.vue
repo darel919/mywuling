@@ -329,7 +329,7 @@ onMounted(async () => {
 // Watch for service details changes to update the page title
 watch(() => serviceDetails.value?.serviceWorkOrder?.no, (orderNo) => {
     useHead({
-        title: orderNo ? `Service Order #${orderNo} - dws-myWuling` : 'Service Details - dws-myWuling'
+        title: orderNo ? `Service Order #${orderNo} - dws-dws-myWULING` : 'Service Details - dws-dws-myWULING'
     })
 }, { immediate: true })
 </script>

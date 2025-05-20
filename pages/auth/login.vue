@@ -9,53 +9,25 @@
                     <NuxtLink to="/about" class="link link-primary text-sm mt-2 inline-block">Why this app?</NuxtLink>
                 </div>
 
-                <form @submit.prevent="handleLogin" class="space-y-6">
-                    <!-- Email Input -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Email</span>
-                        </label>
-                        <input 
-                            type="email" 
-                            v-model="username" 
-                            class="input input-bordered w-full" 
-                            :class="{'input-error': error}"
-                            placeholder="your.email@example.com"
-                            required
-                        />
-                    </div>
-
-                    <!-- Password Input -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Password</span>
-                        </label>
-                        <input 
-                            type="password" 
-                            v-model="password" 
-                            class="input input-bordered w-full" 
-                            :class="{'input-error': error}"
-                            placeholder="Enter your password"
-                            required
-                        />
-                    </div>
-
-                    <!-- Error Message -->
-                    <div v-if="error" class="alert alert-error">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>{{ error }}</span>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button 
-                        type="submit" 
-                        class="btn btn-primary w-full" 
-                        :class="{'loading': isLoading}"
-                        :disabled="isLoading"
+                <!-- DWS Login Button -->
+                <div class="flex flex-col items-center space-y-4">
+                    <div v-if="loginError" class="text-error text-xs mb-1">{{ loginError }}</div>
+                    <button
+                        @click="handleLogin"
+                        class="btn btn-primary w-full flex items-center justify-center"
+                        :disabled="isLoggingIn"
                     >
-                        {{ isLoading ? 'Signing in...' : 'Sign in' }}
+                        <span v-if="isLoggingIn" class="loading loading-spinner loading-md mr-2"></span>
+                        <span>{{ isLoggingIn ? 'Logging in...' : 'Login with DWS' }}</span>
                     </button>
-                </form>
+                </div>
+
+                <!-- Login with wuling.id alternative -->
+                <div class="text-center mt-4">
+                    <NuxtLink to="/auth/loginWithWulingID" class="link link-secondary text-sm">
+                        Login with wuling.id instead
+                    </NuxtLink>
+                </div>
 
                 <!-- Help Text -->
                 <div class="text-center mt-6">
@@ -73,43 +45,71 @@
 <script setup>
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const router = useRouter()
+const isLoggingIn = ref(false)
+const loginError = ref('')
 
 useHead({
     title: 'Login to dws-myWULING'
 })
 
-const username = ref('')
-const password = ref('')
-const error = ref('')
-const isLoading = ref(false)
-
-async function handleLogin() {
-    try {
-        isLoading.value = true
-        error.value = ''
-        
-        const response = await fetch(`${config.public.BASE_API_URL}/account/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: username.value,
-                password: password.value
-            })
-        })
-        
-        if (!response.ok) {
-            throw new Error('Invalid credentials')
+function openLoginWindow(redirectPath, onAuthCancelled) {
+    if (typeof window === 'undefined') return false;
+    localStorage.setItem('redirectAfterAuth', redirectPath || window.location.pathname);
+    sessionStorage.removeItem('redirectionCompleted');
+    sessionStorage.removeItem('authCancelled');
+    localStorage.removeItem('authSuccess');
+    // Always use DARELISME_URL from nuxt config
+    const darelismeUrl = config.public.DARELISME_URL;
+    const redirectUrl = encodeURIComponent(`${window.location.origin}/auth`);
+    const authUrl = `${darelismeUrl}/auth/login?redirectExternal=${redirectUrl}`;
+    const loginWindow = window.open(authUrl, 'darelismeLogin', 'width=600,height=700');
+    if (!loginWindow) {
+        alert('Please allow popups for this site to enable login');
+        if (onAuthCancelled) onAuthCancelled('Popup was blocked');
+        return false;
+    }
+    let authDetected = false;
+    const checkWindowClosed = setInterval(() => {
+        if (authDetected) return;
+        try {
+            if (localStorage.getItem('authSuccess') === 'true') {
+                localStorage.removeItem('authSuccess');
+                clearInterval(checkWindowClosed);
+                authDetected = true;
+                window.location.reload();
+                return;
+            }
+            if (loginWindow.closed) {
+                clearInterval(checkWindowClosed);
+                if (localStorage.getItem('authSuccess') === 'true') {
+                    localStorage.removeItem('authSuccess');
+                    authDetected = true;
+                    window.location.reload();
+                } else {
+                    sessionStorage.setItem('authCancelled', 'true');
+                    if (onAuthCancelled) onAuthCancelled('Login window was closed');
+                }
+            }
+        } catch (e) {
+            // ignore
         }
-        
-        const data = await response.json()
-        authStore.setAuth(data.jwt, data.userData)
-        await navigateTo('/')
-    } catch (err) {
-        error.value = err.message
-    } finally {
-        isLoading.value = false
+    }, 500);
+    return true;
+}
+
+function handleLogin() {
+    isLoggingIn.value = true;
+    loginError.value = '';
+    const success = openLoginWindow(window.location.pathname, (reason) => {
+        isLoggingIn.value = false;
+        loginError.value = 'Login cancelled';
+        setTimeout(() => { loginError.value = ''; }, 3000);
+    });
+    if (!success) {
+        isLoggingIn.value = false;
+        loginError.value = 'Popup was blocked';
+        setTimeout(() => { loginError.value = ''; }, 3000);
     }
 }
 </script>

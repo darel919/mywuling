@@ -1,24 +1,17 @@
 <template>
     <header class="navbar bg-base-100">
         <div class="navbar-start">
-            <a href="/" class="btn btn-ghost normal-case text-xl">
-                <p>dws-myWuling</p>
-            </a>
+            <NuxtLink to="/" class="btn btn-ghost normal-case text-xl">
+                <p>dws-myWULING</p>
+            </NuxtLink>
         </div>
        <ClientOnly>
-            <div class="navbar-end">
-                <template v-if="isLoading">
-                    <div class="loading loading-spinner"></div>
-                </template>
-                <template v-else-if="authStore.isAuthenticated && authStore.userData">                
-                    <NuxtLink to="/account" class="btn btn-ghost avatar tooltip" :data-tip="authStore.userData.userName">
-                        <div class="w-10 rounded-full">
-                            <img :src="authStore.userData.iconsPhoto" :alt="authStore.userData.userName" />
-                        </div>
-                    </NuxtLink>
-                </template>
-                <template v-else-if="!authStore.isAuthenticated">
-                    <button @click="goLogin" class="btn btn-primary">Login</button>
+            <div class="navbar-end ml-auto flex items-center">
+                <NuxtLink to="/account" v-if="avatar">
+                    <img :src="avatar" class="w-8 h-8 rounded-full mr-2" alt="avatar" />
+                </NuxtLink>
+                <template v-else>
+                    <NuxtLink to="/auth/login" class="btn btn-primary btn-sm">Login</NuxtLink>
                 </template>
             </div>
        </ClientOnly>
@@ -26,24 +19,29 @@
 </template>
 
 <script setup>
+import { computed, ref, onMounted } from 'vue'
 const authStore = useAuthStore()
-const isLoading = ref(true)
 
-async function goLogin() {
-    await navigateTo('/auth/login')
-}
+const dwsUserData = ref(null)
+const avatar = computed(() => {
+    if(authStore.authType === 'dws') {
+        return authStore.userData?.data?.user?.user_metadata?.avatar_url || dwsUserData.value?.data?.user?.user_metadata?.avatar_url || ''
+    } else if(authStore.authType === 'wuling.id') {
+        return authStore.userData?.iconsPhoto || ''
+    }
+    return null;
+})
 
-// Check and fetch user data if needed
-onMounted(async () => {
-    if (authStore.isAuthenticated) {
-        try {
-            await authStore.fetchUserData()
-        } catch (error) {
-            const message = 'You need to log in to myWULING to continue'
-            alert(message)
-            await navigateTo('/auth/login')
+onMounted(() => {
+    if (authStore.authType === 'dws' && !authStore.userData) {
+        const stored = localStorage.getItem('userData')
+        if (stored) {
+            try {
+                dwsUserData.value = JSON.parse(stored)
+            } catch {}
         }
     }
-    isLoading.value = false
 })
+
+
 </script>

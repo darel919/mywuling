@@ -106,12 +106,12 @@
                     <!-- Car Information -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
-                            <div class="relative w-full aspect-video mb-4">
+                            <div v-if="carInfo.car.car_picture" class="relative w-full aspect-video mb-4">
                                 <img :src="carInfo?.car.car_picture" 
                                      :alt="carInfo?.car.car_name" 
                                      class="absolute inset-0 w-full h-full object-cover rounded" />
                             </div>
-                            <div class="flex gap-2 mt-4">
+                            <div v-if="carInfo.car" class="flex gap-2 mt-4">
                                 <span v-if="carInfo?.car.isEV" class="badge badge-primary">EV</span>
                                 <span v-if="carInfo?.car.isIOV" class="badge badge-secondary">IOV</span>
                             </div>
@@ -121,7 +121,7 @@
                             </section>
 
                             <!-- Service History Button -->
-                            <div class="mt-4">
+                            <div class="mt-4" v-if="route.query.vin">
                                 <NuxtLink :to="`/car/service/history?vin=${route.query.vin}`" class="btn btn-primary w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -187,13 +187,15 @@
                             <h2 class="text-xl px-4">Real-time vehicle data is not available for this car</h2>
                         </div>
                         
+
+                        <section v-if="carInfo?.car.isEV || carInfo?.car.isIOV">
                         <!-- Battery Status Component -->
                         <CarStatusBattery 
                             v-if="carInfo?.car.isEV"
                             :car-info="carInfo"
                             :car-status="carStatus"
                         />
-                        <!-- Vehicle Status Component -->
+                            <!-- Vehicle Status Component -->
                         <CarStatusVehicle 
                             v-if="carStatus?.car.car_status"
                             :car-status="carStatus"
@@ -209,6 +211,7 @@
                             :car-info="carInfo"
                             :driving-report="drivingReport"
                         />
+                        </section>
 
                     </div>
                 </div>
@@ -244,6 +247,11 @@ let refreshInterval = null
 
 async function checkManualBookAvailability() {
     if (!carInfo.value?.car?.modelCode) return
+    if (!authStore.jwt) {
+        error.value.info = 'Not authorized. Please log in again.'
+        manualBookState.value.loading = false
+        return
+    }
 
     manualBookState.value.loading = true
     try {
@@ -265,6 +273,12 @@ async function fetchCarInfo() {
     const vin = route.query.vin
     if (!vin) {
         error.value.info = 'No VIN provided'
+        return
+    }
+
+    if (!authStore.jwt) {
+        error.value.info = 'Not authorized. Please log in again.'
+        loading.value.info = false
         return
     }
 
@@ -298,6 +312,13 @@ async function refreshStatus() {
         return
     }
 
+    if (!authStore.jwt) {
+        error.value.status = 'Not authorized. Please log in again.'
+        loading.value.status = false
+        refreshing.value = false
+        return
+    }
+
     if (!refreshing.value) {
         loading.value.status = true
     }
@@ -321,7 +342,6 @@ async function refreshStatus() {
     } finally {
         loading.value.status = false
         refreshing.value = false
-        document.title = `${carInfo.value?.car_name || 'Car Status'} - DWS-myWULING`
     }
 }
 
@@ -329,6 +349,12 @@ async function fetchDrivingReport() {
     const vin = route.query.vin
     if (!vin) {
         error.value.report = 'No VIN provided'
+        return
+    }
+
+    if (!authStore.jwt) {
+        error.value.report = 'Not authorized. Please log in again.'
+        loading.value.report = false
         return
     }
 
@@ -355,6 +381,10 @@ async function fetchDrivingReport() {
 }
 
 onMounted(async () => {
+    if (!authStore.jwt) {
+        error.value.info = 'Not authorized. Please log in again.'
+        return
+    }
     await fetchCarInfo()
     await refreshStatus()
     if (carInfo.value?.car.isEV) {
@@ -377,7 +407,7 @@ watch(() => carInfo.value, (newInfo) => {
 watch(() => carInfo.value?.car_name, (carName) => {
     if (carName) {
         useHead({
-            title: `${carName} - dws-myWuling`
+            title: `${carName} - dws-dws-myWULING`
         })
     }
 }, { immediate: true })
