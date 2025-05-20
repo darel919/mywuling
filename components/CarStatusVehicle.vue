@@ -14,7 +14,10 @@
                 </div>
                 <div>
                     <p class="font-bold">Ignition</p>
-                    <p class="capitalize">{{ carStatus?.car.car_status?.ignition }}</p>
+                    <p class="capitalize" :class="{
+                        'text-white': carStatus?.car.car_status?.ignition === 'off', 
+                        'text-success': carStatus?.car.car_status?.ignition === 'on' 
+                    }">{{ carStatus?.car.car_status?.ignition }}</p>
                 </div>
                 <div>
                     <p class="font-bold">Trunk</p>

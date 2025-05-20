@@ -1,14 +1,12 @@
 <template>
     <div class="container py-4 px-6 sm:px-24 mx-auto  min-h-screen">
         <template v-if="loading.info || (loading.status && !carStatus)">
-            <!-- Skeleton Refresh Bar -->
             <div class="flex justify-between items-center mb-6">
                 <div class="skeleton h-4 w-48"></div>
                 <div class="skeleton h-8 w-20"></div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Car Information Card Skeleton -->
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
                         <div class="skeleton h-[300px] w-full rounded-lg mb-4"></div>
@@ -26,9 +24,7 @@
                     </div>
                 </div>
 
-                <!-- Status Information Skeleton -->
                 <div class="space-y-4">
-                    <!-- Battery Status Card Skeleton -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
                             <div class="skeleton h-8 w-32 mb-4"></div>
@@ -51,7 +47,6 @@
                         </div>
                     </div>
 
-                    <!-- Vehicle Status Card Skeleton -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
                             <div class="skeleton h-8 w-32 mb-4"></div>
@@ -64,7 +59,6 @@
                         </div>
                     </div>
 
-                    <!-- Location Card Skeleton -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
                             <div class="skeleton h-8 w-24 mb-4"></div>
@@ -87,7 +81,6 @@
                         <li><b>Car Status</b></li>
                     </ul>
                 </div>       
-                <!-- Refresh info -->
                 <div v-if="carInfo?.car.isEV || carInfo?.car.isIOV" 
                      class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
@@ -103,7 +96,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Car Information -->
                     <div class="card bg-base-100 shadow-xl">
                         <div class="card-body">
                             <div v-if="carInfo.car.car_picture" class="relative w-full aspect-video mb-4">
@@ -120,7 +112,6 @@
                                 <h2 class="text-2xl -mt-2">{{ carInfo?.car.car_name }}</h2>
                             </section>
 
-                            <!-- Service History Button -->
                             <div class="mt-4" v-if="route.query.vin">
                                 <NuxtLink :to="`/car/service/history?vin=${route.query.vin}`" class="btn btn-primary w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -179,7 +170,6 @@
                         </div>
                     </div>
 
-                    <!-- Status Information -->
                     <div class="space-y-4">
                         <div v-if="!carInfo?.car.isEV && !carInfo?.car.isIOV" 
                              class="alert flex items-center flex-col p-4">
@@ -189,28 +179,24 @@
                         
 
                         <section v-if="carInfo?.car.isEV || carInfo?.car.isIOV">
-                        <!-- Battery Status Component -->
-                        <CarStatusBattery 
-                            v-if="carInfo?.car.isEV"
-                            :car-info="carInfo"
-                            :car-status="carStatus"
-                        />
-                            <!-- Vehicle Status Component -->
-                        <CarStatusVehicle 
-                            v-if="carStatus?.car.car_status"
-                            :car-status="carStatus"
-                        />
-                        <!-- Location Component -->
-                        <CarStatusLocation 
-                            v-if="carStatus?.car.location?.lat && carStatus?.car.location?.lng"
-                            :car-status="carStatus"
-                        />                  
-                        <!-- Driving Report Component -->
-                        <CarStatusDrivingReport
-                            v-if="carInfo?.car.isEV && drivingReport"
-                            :car-info="carInfo"
-                            :driving-report="drivingReport"
-                        />
+                            <CarStatusBattery 
+                                v-if="carInfo?.car.isEV"
+                                :car-info="carInfo"
+                                :car-status="carStatus"
+                            />
+                            <CarStatusVehicle 
+                                v-if="carStatus?.car.car_status"
+                                :car-status="carStatus"
+                            />
+                            <CarStatusLocation 
+                                v-if="carStatus?.car.location?.lat && carStatus?.car.location?.lng"
+                                :car-status="carStatus"
+                            />                  
+                            <CarStatusDrivingReport
+                                v-if="carInfo?.car.isEV && drivingReport"
+                                :car-info="carInfo"
+                                :driving-report="drivingReport"
+                            />
                         </section>
 
                     </div>
@@ -398,12 +384,28 @@ watch(() => carInfo.value, (newInfo) => {
         refreshInterval = null
     }
     
+    const updateRefreshInterval = () => {
+        const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on';
+        
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+
+        const refreshTime = isIgnitionOn ? 5000 : 30000;
+        refreshInterval = setInterval(() => refreshStatus(), refreshTime)
+    };    
     if (newInfo?.isEV || newInfo?.isIOV) {
-        refreshInterval = setInterval(() => refreshStatus(), 30000)
+        updateRefreshInterval();
+        
+        watch(() => carStatus.value?.car?.car_status?.ignition, (newIgnitionState, oldIgnitionState) => {
+            if (newIgnitionState !== oldIgnitionState) {
+                updateRefreshInterval();
+            }
+        });
     }
 }, { immediate: true })
 
-// Update page title when car info changes
 watch(() => carInfo.value?.car_name, (carName) => {
     if (carName) {
         useHead({
@@ -412,7 +414,6 @@ watch(() => carInfo.value?.car_name, (carName) => {
     }
 }, { immediate: true })
 
-// Watch for car model code changes to check manual book availability
 watch(() => carInfo.value?.car?.modelCode, (modelCode) => {
     if (modelCode) {
         checkManualBookAvailability()

@@ -35,9 +35,7 @@ onMounted(async () => {
       if (!response.ok) throw new Error('Failed to authenticate with backend')
       const data = await response.json()
       authStore.setAuth(at, data.data, 'dws')
-      // Set localStorage flag for popup detection
       window.localStorage.setItem('authSuccess', 'true')
-      // If in popup, notify opener and close
       if (window.opener) {
         try {
           window.opener.localStorage.setItem('authSuccess', 'true')
@@ -48,12 +46,10 @@ onMounted(async () => {
         }, 500)
         return
       }
-      // Prevent double redirect
       if (sessionStorage.getItem('redirectionCompleted')) {
         processing.value = false
         return
       }
-      // Handle redirectAfterAuth
       const redirectPath = localStorage.getItem('redirectAfterAuth') || route.query.redirect || '/'
       localStorage.removeItem('redirectAfterAuth')
       sessionStorage.setItem('redirectionCompleted', 'true')

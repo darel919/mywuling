@@ -59,7 +59,6 @@ function openLoginWindow(redirectPath, onAuthCancelled) {
     sessionStorage.removeItem('redirectionCompleted');
     sessionStorage.removeItem('authCancelled');
     localStorage.removeItem('authSuccess');
-    // Always use DARELISME_URL from nuxt config
     const darelismeUrl = config.public.DARELISME_URL;
     const redirectUrl = encodeURIComponent(`${window.location.origin}/auth`);
     const authUrl = `${darelismeUrl}/auth/login?redirectExternal=${redirectUrl}`;
@@ -92,7 +91,6 @@ function openLoginWindow(redirectPath, onAuthCancelled) {
                 }
             }
         } catch (e) {
-            // ignore
         }
     }, 500);
     return true;

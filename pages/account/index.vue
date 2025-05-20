@@ -111,7 +111,6 @@ const authStore = useAuthStore()
 const router = useRouter()
 const isLoading = ref(true)
 
-// Watch for userData changes to update page title
 watch(() => authStore.userData, (userData) => {
     if (userData) {
         useHead({
@@ -137,18 +136,11 @@ const username = computed(() => {
     return null;
 })
 
-// Redirect if not authenticated
 onMounted(async () => {
-    // if (!authStore.isAuthenticated) {
-    //     router.push('/auth/login')
-    //     return
-    // }
-    
     if (!authStore.userData) {
         try {
             await authStore.fetchUserData()
         } catch (error) {
-            // router.push('/auth/login')
         }
     }
     
