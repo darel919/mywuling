@@ -83,11 +83,14 @@
                 </div>       
                 <div v-if="carInfo?.car.isEV || carInfo?.car.isIOV" 
                      class="flex justify-between items-center">
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-col gap-1">
+                        <div v-if="carStatus?.car?.car_status?.ignition === 'on'" class="alert alert-success py-1 px-4 text-sm flex items-center gap-2 mb-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <p>REAL-TIME UPDATE ENABLED: <b>Ignition ON</b></p>
+                        </div>
                         <p class="text-sm text-gray-500" v-if="carStatus.apiStatus && carStatus.apiStatus.time">
                             Last updated: {{ new Date(carStatus.apiStatus.time).toLocaleString() }}
                         </p>
-                        <span v-if="refreshing" class="loading loading-spinner loading-sm"></span>
                     </div>
                     <button @click="refreshStatus()" class="btn btn-primary btn-sm" :disabled="refreshing">
                         <span v-if="refreshing">Refreshing...</span>
@@ -178,7 +181,7 @@
                         </div>
                         
 
-                        <section v-if="carInfo?.car.isEV || carInfo?.car.isIOV">
+                        <!-- <section v-if="carInfo?.car.isEV || carInfo?.car.isIOV"> -->
                             <CarStatusBattery 
                                 v-if="carInfo?.car.isEV"
                                 :car-info="carInfo"
@@ -197,7 +200,7 @@
                                 :car-info="carInfo"
                                 :driving-report="drivingReport"
                             />
-                        </section>
+                        <!-- </section> -->
 
                     </div>
                 </div>

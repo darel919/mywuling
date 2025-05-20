@@ -15,7 +15,7 @@
                 <div>
                     <p class="font-bold">Ignition</p>
                     <p class="capitalize" :class="{
-                        'text-white': carStatus?.car.car_status?.ignition === 'off', 
+                        'text-content': carStatus?.car.car_status?.ignition === 'off', 
                         'text-success': carStatus?.car.car_status?.ignition === 'on' 
                     }">{{ carStatus?.car.car_status?.ignition }}</p>
                 </div>

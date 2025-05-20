@@ -33,9 +33,12 @@
                             {{ car.billDate ? new Date(car.billDate).getFullYear() : 'N/A' }}
                         </h2>
                         
-                        <h3 class="text-3xl -mt-2 text-primary font-medium">
-                            {{ car.modelPrefix ? car.modelPrefix : car.modelName }}
-                        </h3>                        
+                        <h3 v-if="car.modelPrefix" class="text-3xl -mt-2 text-primary font-medium">
+                            {{ car.modelPrefix }}
+                        </h3>  
+                        <h3 v-else class="text-xl -mt-2 text-primary font-medium">
+                            {{  car.modelName }}
+                        </h3>                       
                         <section v-if="car.stnkTaxDate" class="font-mono">
                             <p class="text-sm">STNK Tax Date: {{ car.stnkTaxDate }} </p>                            <p :class="{ 'text-orange-500': daysUntil(car.stnkTaxDate).warning }">
                                 ({{ daysUntil(car.stnkTaxDate).value < 0 ? '' : 'in ' }}{{ Math.abs(daysUntil(car.stnkTaxDate).value) }} {{ daysUntil(car.stnkTaxDate).unit }}{{ daysUntil(car.stnkTaxDate).value < 0 ? ' ago' : '' }})
