@@ -2,7 +2,7 @@
     <div v-if="carInfo?.car.isEV" class="card bg-base-100 shadow-xl">
         <div class="card-body">
             <h3 class="card-title">Battery Status</h3>
-            <div class="grid grid-cols-2 gap-3">                            
+            <div class="grid grid-cols-2 gap-4">                            
                 <div class="col-span-2">
                     <p class="font-bold mb-3">Charge Level</p>                                
                     <progress 
@@ -33,10 +33,10 @@
                 </div>
                 <div>
                     <p class="font-bold">Capacity</p>
-                    <section class="flex flex-row items-baseline gap-1">
-                        <span class="text-2xl font-mono">{{ carStatus?.car.battery?.current_capacity }}<span class="text-base">kW</span></span>
+                    <section class="flex flex-row items-baseline gap-1 flex-wrap">
+                        <span class="text-2xl font-mono whitespace-nowrap">{{ carStatus?.car.battery?.current_capacity }}<span class="text-base">kW</span></span>
                         <span class="text-xl font-mono mx-1">/</span>
-                        <span class="text-base font-mono text-gray-500">{{ carStatus?.car.battery?.full_capacity }}kW</span>
+                        <span class="text-base font-mono -mt-2 sm:mt-0 text-gray-500 whitespace-nowrap">{{ carStatus?.car.battery?.full_capacity }}kW</span>
                     </section>
                 </div>
                 <div>

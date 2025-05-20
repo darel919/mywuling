@@ -2,7 +2,7 @@
     <div class="container py-4 px-6 sm:px-24 mx-auto min-h-screen">
         <ClientOnly>
             <h1 class="text-3xl mb-6">
-                Welcome to myWULING<span v-if="authStore.userData" class="font-bold">, {{ userName.split(' ')[0] }}!</span>
+                Welcome<span v-if="authStore.userData" class="font-bold">, {{ userName.split(' ')[0] }}!</span>
             </h1>
         
             <template v-if="authStore.isLoading">

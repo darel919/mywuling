@@ -388,31 +388,33 @@ watch(() => carInfo.value, (newInfo) => {
     }
     
     const updateRefreshInterval = () => {
-        const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on';
-        
         if (refreshInterval) {
-            clearInterval(refreshInterval);
-            refreshInterval = null;
+            clearInterval(refreshInterval)
+            refreshInterval = null
         }
 
-        const refreshTime = isIgnitionOn ? 5000 : 30000;
-        refreshInterval = setInterval(() => refreshStatus(), refreshTime)
-    };    
-    if (newInfo?.isEV || newInfo?.isIOV) {
-        updateRefreshInterval();
+        const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on'
+        const refreshTime = isIgnitionOn ? 5000 : 30000
+        
+        refreshStatus() // Initial status check
+        refreshInterval = setInterval(refreshStatus, refreshTime)
+    }
+
+    if (newInfo?.car?.isEV || newInfo?.car?.isIOV) {
+        updateRefreshInterval()
         
         watch(() => carStatus.value?.car?.car_status?.ignition, (newIgnitionState, oldIgnitionState) => {
             if (newIgnitionState !== oldIgnitionState) {
-                updateRefreshInterval();
+                updateRefreshInterval()
             }
-        });
+        }, { immediate: true })
     }
 }, { immediate: true })
 
 watch(() => carInfo.value?.car_name, (carName) => {
     if (carName) {
         useHead({
-            title: `${carName} - dws-dws-myWULING`
+            title: `${carName} - dws-myWULING`
         })
     }
 }, { immediate: true })
