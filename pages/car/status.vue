@@ -394,7 +394,7 @@ watch(() => carInfo.value, (newInfo) => {
         }
 
         const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on'
-        const refreshTime = isIgnitionOn ? 5000 : 30000
+        const refreshTime = isIgnitionOn ? 15000 : 45000
         
         refreshStatus() // Initial status check
         refreshInterval = setInterval(refreshStatus, refreshTime)

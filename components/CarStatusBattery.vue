@@ -55,6 +55,23 @@
                         <span class="block text-sm text-gray-500 font-normal">(done: {{ estimatedChargeTime.completion }})</span>
                     </p>
                 </div>
+                <!-- Rough Charge Time Estimate Accordion -->
+                <div v-if="!carStatus?.car.battery?.charging" class="col-span-2">
+                    <details>
+                        <summary class="cursor-pointer font-bold text-base my-2">Rough Charge Time Estimate</summary>
+                        <div class="mt-2">
+                            <section class="flex flex-row items-baseline gap-1 flex-wrap mb-2">
+                                <label class="block text-sm font-medium mb-1 mr-4">Assumed Charging Power (kW):</label>
+                                <input type="number" step="0.1" min="0.1" v-model.number="assumedChargingPower" class="input input-bordered input-sm w-24 mb-2" />
+                            </section>
+                            <div class="mb-1">
+                                <span class="font-bold">Estimated Time to Full Charge:</span>
+                                <span class="ml-2">{{ roughChargeEstimate.text }}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 italic">This is a rough estimate based on your input and may not reflect actual charging times. Actual times may vary depending on charger, battery condition, and other factors.</p>
+                        </div>
+                    </details>
+                </div>
             </div>
         </div>
     </div>
@@ -116,6 +133,29 @@ const estimatedChargeTime = computed(() => {
         text: timeText,
         completion: completionText
     }
+})
+
+const assumedChargingPower = ref(1.5)
+
+const roughChargeEstimate = computed(() => {
+    const battery = props.carStatus?.car.battery
+    if (!battery || battery.charging) return { text: '-', completion: null }
+    const current = battery.current_capacity
+    const full = battery.full_capacity
+    const power = assumedChargingPower.value
+    if (!current || !full || !power || power <= 0) return { text: '-', completion: null }
+    const hoursToCharge = (full - current) / power
+    if (hoursToCharge <= 0) return { text: 'Already full', completion: null }
+    const minutesToCharge = Math.ceil(hoursToCharge * 60)
+    let timeText
+    if (minutesToCharge < 60) {
+        timeText = `${minutesToCharge} minutes`
+    } else {
+        const hours = Math.floor(hoursToCharge)
+        const minutes = Math.round((hoursToCharge - hours) * 60)
+        timeText = minutes > 0 ? `${hours} hours ${minutes} minutes` : `${hours} hours`
+    }
+    return { text: timeText, completion: null }
 })
 </script>
 
