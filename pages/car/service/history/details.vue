@@ -131,6 +131,8 @@
                                         <th>Work Type</th>
                                         <th>Status</th>
                                         <th class="text-right">Price</th>
+                                        <th class="text-right">Discount</th>
+                                        <th class="text-right">Net</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -146,6 +148,11 @@
                                         <td class="text-right font-mono">
                                             {{ formatCurrency(labour.work_hour_price) }}
                                         </td>
+                                        <td class="text-right font-mono">
+                                            <span v-if="labour.discount_rate && labour.discount_rate > 0">{{ (labour.discount_rate * 100).toFixed(0) }}%<br><span class="text-xs text-gray-400">-{{ formatCurrency(labour.discount_money) }}</span></span>
+                                            <span v-else>-</span>
+                                        </td>
+                                        <td class="text-right font-mono">{{ formatCurrency(labour.receive_money || (labour.work_hour_price - (labour.discount_money || 0))) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -157,24 +164,31 @@
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title mb-4">Spare Parts</h2>
-                        <div v-if="serviceDetails.spareParts?.length > 0 && serviceDetails.spareParts.some(part => part.part_no)" class="overflow-x-auto">
+                        <div v-if="normalizedSpareParts.length > 0 && normalizedSpareParts.some(part => part.part_no)" class="overflow-x-auto">
                             <table class="table table-zebra w-full">
                                 <thead>
                                     <tr>
                                         <th>Part</th>
                                         <th>Quantity</th>
-                                        <th class="text-right">Price</th>
+                                        <th class="text-right">Original Price</th>
+                                        <th class="text-right">Discount</th>
+                                        <th class="text-right">Final Price</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="part in serviceDetails.spareParts.filter(p => p.part_no)" :key="part.part_no">
+                                    <tr v-for="part in normalizedSpareParts.filter(p => p.part_no)" :key="part.part_no">
                                         <td>
                                             {{ part.part_name }}
                                             <br>
                                             <span class="text-sm text-gray-500">{{ part.part_no }}</span>
                                         </td>
-                                        <td>{{ part.quantity || 1 }}</td>
-                                        <td class="text-right font-mono">{{ part.price ? formatCurrency(part.price) : '-' }}</td>
+                                        <td>{{ part.quantity }}</td>
+                                        <td class="text-right font-mono">{{ formatCurrency(part.originalPrice) }}</td>
+                                        <td class="text-right font-mono">
+                                            <span v-if="part.discount && part.discount > 0">{{ (part.discount * 100).toFixed(0) }}%<br><span class="text-xs text-gray-400">-{{ formatCurrency(part.discountMoney) }}</span></span>
+                                            <span v-else>-</span>
+                                        </td>
+                                        <td class="text-right font-mono">{{ formatCurrency(part.finalPrice) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -187,17 +201,20 @@
                 <div class="card bg-base-100 shadow-xl">
                     <div class="card-body">
                         <h2 class="card-title mb-4">Additional Items</h2>
-                        <div v-if="serviceDetails.addItemList.length > 0" class="overflow-x-auto">
+                        <div v-if="normalizedAddItemList.length > 0" class="overflow-x-auto">
                             <table class="table table-zebra w-full">
                                 <thead>
                                     <tr>
                                         <th>Item</th>
                                         <th>Quantity</th>
                                         <th class="text-right">Price</th>
+                                        <th class="text-right">Discount</th>
+                                        <th class="text-right">Final</th>
+                                        <th>Remark</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in serviceDetails.addItemList" :key="item.item_code">
+                                    <tr v-for="item in normalizedAddItemList" :key="item.item_code">
                                         <td>
                                             {{ item.item_name }}
                                             <br>
@@ -205,6 +222,15 @@
                                         </td>
                                         <td>{{ item.quantity }}</td>
                                         <td class="text-right font-mono">{{ formatCurrency(item.price) }}</td>
+                                        <td class="text-right font-mono">
+                                            <span v-if="item.discountAmount && item.discountAmount > 0">-{{ formatCurrency(item.discountAmount) }}</span>
+                                            <span v-else>-</span>
+                                        </td>
+                                        <td class="text-right font-mono">{{ formatCurrency(item.receivableAmount || (item.price - (item.discountAmount || 0))) }}</td>
+                                        <td>
+                                            <span v-if="item.remark">{{ item.remark }}</span>
+                                            <span v-else>-</span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -219,14 +245,40 @@
                             <h2 class="card-title text-xl">Total Cost</h2>
                             <div class="font-mono text-2xl tabular-nums">{{ formatCurrency(getTotalCost()) }}</div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="grid grid-cols-1 gap-4 mt-4">
                             <div>
                                 <p class="font-bold text-sm text-base-content/70">Labour Cost</p>
-                                <p class="font-mono">{{ formatCurrency(getTotalLabourCost()) }}</p>
+                                <div class="flex flex-col">
+                                    <div class="flex justify-between">
+                                        <span class="font-mono text-gray-500">Original:</span>
+                                        <span class="font-mono">{{ formatCurrency(getTotalLabourCost()) }}</span>
+                                    </div>
+                                    <div v-if="getTotalLabourDiscount() > 0" class="flex justify-between">
+                                        <span class="font-mono text-gray-500">Discount:</span>
+                                        <span class="font-mono text-gray-500">-{{ formatCurrency(getTotalLabourDiscount()) }}</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold">
+                                        <span class="font-mono">Net:</span>
+                                        <span class="font-mono">{{ formatCurrency(getTotalLabourCost() - getTotalLabourDiscount()) }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div v-if="getTotalPartsCost() > 0">
+                            <div v-if="getOriginalPartsCost() > 0">
                                 <p class="font-bold text-sm text-base-content/70">Parts Cost</p>
-                                <p class="font-mono">{{ formatCurrency(getTotalPartsCost()) }}</p>
+                                <div class="flex flex-col">
+                                    <div class="flex justify-between">
+                                        <span class="font-mono text-gray-500">Original:</span>
+                                        <span class="font-mono">{{ formatCurrency(getOriginalPartsCost()) }}</span>
+                                    </div>
+                                    <div v-if="getTotalPartsDiscount() > 0" class="flex justify-between">
+                                        <span class="font-mono text-gray-500">Discount:</span>
+                                        <span class="font-mono text-gray-500">-{{ formatCurrency(getTotalPartsDiscount()) }}</span>
+                                    </div>
+                                    <div class="flex justify-between font-bold">
+                                        <span class="font-mono">Net:</span>
+                                        <span class="font-mono">{{ formatCurrency(getTotalPartsCost()) }}</span>
+                                    </div>
+                                </div>
                             </div>
                             <div v-if="getTotalAdditionalItemsCost() > 0">
                                 <p class="font-bold text-sm text-base-content/70">Additional Items</p>
@@ -248,6 +300,34 @@ const loading = ref(true)
 const error = ref(null)
 const serviceDetails = ref(null)
 
+// Helper to normalize addItemList for display and calculation
+const normalizedAddItemList = computed(() => {
+    if (!serviceDetails.value?.addItemList) return []
+    return serviceDetails.value.addItemList.map(item => ({
+        item_code: item.addItemCode || item.item_code,
+        item_name: item.addItemName || item.item_name,
+        price: item.addItemAmount || item.price || 0,
+        quantity: item.quantity || 1,
+        discountAmount: item.discountAmount || 0,
+        receivableAmount: item.receivableAmount || 0,
+        remark: item.remark || ''
+    }))
+})
+
+// Helper to normalize spareParts for display and calculation
+const normalizedSpareParts = computed(() => {
+    if (!serviceDetails.value?.spareParts) return []
+    return serviceDetails.value.spareParts.map(part => ({
+        part_no: part.partCoNo || part.part_no,
+        part_name: part.partName || part.part_name,
+        quantity: part.partQuantity || part.quantity || 1,
+        originalPrice: part.partSalesPrice || 0,
+        discount: part.discount || 0,
+        discountMoney: part.discountMoneyShow || 0,
+        finalPrice: part.afterDiscountAmount || 0
+    }))
+})
+
 function formatDate(dateStr) {
     try {
         return new Date(dateStr).toLocaleString()
@@ -262,17 +342,33 @@ function getTotalLabourCost() {
         .reduce((total, labour) => total + (labour.work_hour_price || 0), 0)
 }
 
+function getTotalLabourDiscount() {
+    if (!serviceDetails.value?.serviceLabourOrder) return 0
+    return serviceDetails.value.serviceLabourOrder
+        .reduce((total, labour) => total + (labour.discount_money || 0), 0)
+}
+
 function getTotalPartsCost() {
-    if (!serviceDetails.value?.spareParts) return 0
-    return serviceDetails.value.spareParts
-        .filter(part => part.part_no)
-        .reduce((total, part) => 
-            total + ((part.price || 0) * (part.quantity || 1)), 0)
+    if (!normalizedSpareParts.value.length) return 0
+    return normalizedSpareParts.value
+        .reduce((total, part) => total + (part.finalPrice || 0), 0)
+}
+
+function getOriginalPartsCost() {
+    if (!normalizedSpareParts.value.length) return 0
+    return normalizedSpareParts.value
+        .reduce((total, part) => total + (part.originalPrice || 0), 0)
+}
+
+function getTotalPartsDiscount() {
+    if (!normalizedSpareParts.value.length) return 0
+    return normalizedSpareParts.value
+        .reduce((total, part) => total + (part.discountMoney || 0), 0)
 }
 
 function getTotalAdditionalItemsCost() {
-    if (!serviceDetails.value?.addItemList) return 0
-    return serviceDetails.value.addItemList
+    if (!normalizedAddItemList.value.length) return 0
+    return normalizedAddItemList.value
         .reduce((total, item) => 
             total + ((item.price || 0) * (item.quantity || 1)), 0)
 }
@@ -280,7 +376,9 @@ function getTotalAdditionalItemsCost() {
 function getTotalCost() {
     if (!serviceDetails.value?.serviceWorkOrder) return 0
     
-    return getTotalLabourCost() + getTotalPartsCost() + getTotalAdditionalItemsCost()
+    return (getTotalLabourCost() - getTotalLabourDiscount()) + 
+           getTotalPartsCost() + 
+           getTotalAdditionalItemsCost()
 }
 
 function formatCurrency(amount) {
@@ -328,7 +426,7 @@ onMounted(async () => {
 
 watch(() => serviceDetails.value?.serviceWorkOrder?.no, (orderNo) => {
     useHead({
-        title: orderNo ? `Service Order #${orderNo} - dws-dws-myWULING` : 'Service Details - dws-dws-myWULING'
+        title: orderNo ? `Service Order #${orderNo} -dws-myWULING` : 'Service Details -dws-myWULING'
     })
 }, { immediate: true })
 </script>

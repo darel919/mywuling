@@ -114,7 +114,7 @@ const isLoading = ref(true)
 watch(() => authStore.userData, (userData) => {
     if (userData) {
         useHead({
-            title: `${userData.userName}'s Account - dws-dws-myWULING`
+            title: `${userData.userName}'s Account - dws-myWULING`
         })
     }
 }, { immediate: true })

@@ -128,6 +128,6 @@ onMounted(async () => {
 })
 
 useHead({
-    title: 'Service History - dws-dws-myWULING'
+    title: 'Service History - dws-myWULING'
 })
 </script>

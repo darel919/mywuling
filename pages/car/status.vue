@@ -115,6 +115,12 @@
                                 <h2 class="text-2xl -mt-2">{{ carInfo?.car.car_name }}</h2>
                             </section>
 
+                            <CarServiceReminder 
+                                v-if="route.query.vin"
+                                :vin="route.query.vin" 
+                                class="my-4"
+                            />
+
                             <div class="mt-4" v-if="route.query.vin">
                                 <NuxtLink :to="`/car/service/history?vin=${route.query.vin}`" class="btn btn-primary w-full">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
