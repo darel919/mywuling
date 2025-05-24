@@ -392,25 +392,36 @@ watch(() => carInfo.value, (newInfo) => {
         clearInterval(refreshInterval)
         refreshInterval = null
     }
-    
     const updateRefreshInterval = () => {
         if (refreshInterval) {
             clearInterval(refreshInterval)
             refreshInterval = null
-        }
-
-        const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on'
-        const refreshTime = isIgnitionOn ? 15000 : 45000
+        }        const isIgnitionOn = carStatus.value?.car?.car_status?.ignition === 'on'
+        const isCharging = carStatus.value?.car?.battery?.charging
         
-        refreshStatus() // Initial status check
+        let refreshTime
+        if (isCharging) {
+            refreshTime = 30000
+        } else if (isIgnitionOn) {
+            refreshTime = 15000
+        } else {
+            refreshTime = 45000
+        }
+        
+        refreshStatus()
         refreshInterval = setInterval(refreshStatus, refreshTime)
-    }
-
+    };    
     if (newInfo?.car?.isEV || newInfo?.car?.isIOV) {
         updateRefreshInterval()
         
         watch(() => carStatus.value?.car?.car_status?.ignition, (newIgnitionState, oldIgnitionState) => {
             if (newIgnitionState !== oldIgnitionState) {
+                updateRefreshInterval()
+            }
+        }, { immediate: true })
+        
+        watch(() => carStatus.value?.car?.battery?.charging, (newChargingState, oldChargingState) => {
+            if (newChargingState !== oldChargingState) {
                 updateRefreshInterval()
             }
         }, { immediate: true })

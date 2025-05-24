@@ -19,7 +19,6 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
 const authStore = useAuthStore()
 
 const dwsUserData = ref(null)

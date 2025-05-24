@@ -22,7 +22,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
 

@@ -38,21 +38,86 @@
                         <span class="text-xl font-mono mx-1">/</span>
                         <span class="text-base font-mono -mt-2 sm:mt-0 text-gray-500 whitespace-nowrap">{{ carStatus?.car.battery?.full_capacity }}kW</span>
                     </section>
-                </div>
+                </div>                
                 <div>
                     <p class="font-bold">Charging Status</p>
                     <p :class="carStatus?.car.battery?.charging ? 'text-success font-bold text-xl' : ''">
                         {{ carStatus?.car.battery?.charging ? 'Charging' : 'Not Charging' }}
-                        <span v-if="carStatus?.car.battery?.charging && carStatus?.car.battery?.charging_power" class="block text-sm text-gray-500 font-normal">
-                            {{ carStatus.car.battery.charging_power }}kW
+                        <span v-if="carStatus?.car.battery?.charging && effectiveChargingPower" class="block text-sm text-gray-500 font-normal">
+                            <span class="inline-flex items-center gap-2 mt-1">
+                                <span>{{ effectiveChargingPower.value }}kW</span>
+                                <span v-if="effectiveChargingPower.source === 'calculated'"
+                                      class="text-xs badge badge-sm badge-success rounded-none"
+                                      title="Charging power data calculated from battery percentage over time">
+                                    calculated
+                                </span>
+                                <span v-else-if="effectiveChargingPower.source === 'reported'"
+                                      class="text-xs badge badge-sm badge-info rounded-none"
+                                      title="Using estimation data">
+                                    estimated
+                                </span>
+                            </span>
                         </span>
                     </p>
-                </div>
-                <div v-if="carStatus?.car.battery?.charging && carStatus?.car.battery?.charging_power">
+                </div>                
+                <div v-if="carStatus?.car.battery?.charging && effectiveChargingPower">
                     <p class="font-bold">Estimated Charge Time</p>
                     <p class="text-success font-bold text-xl">
                         {{ estimatedChargeTime.text }}
                         <span class="block text-sm text-gray-500 font-normal">(done: {{ estimatedChargeTime.completion }})</span>
+                    </p>
+                </div>                
+                <div v-if="carStatus?.car.battery?.charging && effectiveChargingPower && effectiveChargingPower.source === 'calculated' && chargingStats.accuracy > 0" class="col-span-2">
+                    <div class="mt-1 text-xs text-success font-semibold">Calculated from data</div>                    
+                    <div class="mt-1 text-xs" v-if="chargingStats.accuracy > 0"  :class="{
+                        'text-success': chargingStats?.accuracy >= 80,
+                        'text-warning': chargingStats?.accuracy >= 60 && chargingStats?.accuracy < 80, 
+                        'text-error': chargingStats?.accuracy < 60
+                    }">
+                        Accuracy: {{ chargingStats?.accuracy || 0 }}% 
+                        <span v-if="chargingStats?.dataPoints && chargingStats?.timeWindow" class="ml-1 text-gray-500">
+                            ({{ chargingStats.dataPoints }} points over {{ chargingStats.timeWindow }} min)
+                        </span>
+                    </div>
+                    <div class="flex flex-row gap-8 items-center mt-2">
+                        <div>
+                            <span class="font-bold">10 min charge:</span>
+                            <span class="ml-2">
+                                <template v-if="chargingStats">+{{ chargingStats.percentGain }}%</template>
+                                <template v-else>Calculating…</template>
+                            </span>
+                        </div>
+                        <div v-if="chargingStats && chargingStats.rangeGain !== null">
+                            <span class="font-bold">10 min range:</span>
+                            <span class="ml-2">+{{ chargingStats.rangeGain }} km</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-row gap-8 items-center mt-1">
+                        <div>
+                            <span class="font-bold">1 hour charge:</span>
+                            <span class="ml-2">
+                                <template v-if="chargingStats && chargingStats.hourPercentGain !== null">+{{ chargingStats.hourPercentGain }}%</template>
+                                <template v-else>Calculating…</template>
+                            </span>
+                        </div>
+                        <div v-if="chargingStats && chargingStats.hourRangeGain !== null">
+                            <span class="font-bold">1 hour range:</span>
+                            <span class="ml-2">+{{ chargingStats.hourRangeGain }} km</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Battery Percentage History Chart -->
+                <div v-if="carStatus?.car.battery?.charging && effectiveChargingPower && effectiveChargingPower.source === 'calculated' && chartData && batteryHistory.length > 1" class="col-span-2">
+                    <p class="font-bold text-base mb-3">Charging History Chart</p>
+                    <div class="h-64 w-full mb-2">
+                        <Line 
+                            :data="chartData" 
+                            :options="chartOptions"
+                            class="w-full h-full"
+                        />
+                    </div>
+                    <p class="text-xs text-gray-500 italic">
+                        Blue line: Normal | Green line: Charging | Chart shows last 24 hours of data
                     </p>
                 </div>
                 <!-- Rough Charge Time Estimate Accordion -->
@@ -78,6 +143,33 @@
 </template>
 
 <script setup>
+import { Line } from 'vue-chartjs'
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    TimeScale,
+    Filler
+} from 'chart.js'
+import 'chartjs-adapter-date-fns'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    TimeScale,
+    Filler
+)
+
 const props = defineProps({
     carInfo: {
         type: Object,
@@ -89,14 +181,176 @@ const props = defineProps({
     }
 })
 
-const estimatedChargeTime = computed(() => {
-    if (!props.carStatus?.car.battery?.charging_power) return { text: 'Calculating...', completion: null }
 
-    const hoursToCharge = (props.carStatus.car.battery.full_capacity - props.carStatus.car.battery.current_capacity) / props.carStatus.car.battery.charging_power
+const batteryHistory = ref([])
+const calculatedChargingPower = ref(null)
+const powerCalculationWindow = 5 
+const graphDataWindow = 24 * 60
+
+const addBatteryDataPoint = (battery) => {
+    if (!battery) return
+    
+    const now = Date.now()
+    const currentSoc = battery.soc
+
+    batteryHistory.value.push({
+        timestamp: now,
+        soc: currentSoc,
+        capacity: battery.current_capacity,
+        charging: battery.charging
+    });    
+    const graphWindowMs = graphDataWindow * 60 * 1000
+    batteryHistory.value = batteryHistory.value.filter(point => 
+        now - point.timestamp <= graphWindowMs
+    )    
+    if (battery.charging) {
+        const powerCalcWindowMs = powerCalculationWindow * 60 * 1000
+        const recentData = batteryHistory.value.filter(point => 
+            now - point.timestamp <= powerCalcWindowMs && point.charging
+        )
+
+        if (recentData.length >= 2) {
+            const oldestPoint = recentData[0]
+            const newestPoint = recentData[recentData.length - 1]
+            
+            const timeDiffHours = (newestPoint.timestamp - oldestPoint.timestamp) / (1000 * 60 * 60)
+            const capacityChange = newestPoint.capacity - oldestPoint.capacity
+            
+            if (timeDiffHours > 0 && capacityChange > 0) {
+                calculatedChargingPower.value = Math.round((capacityChange / timeDiffHours) * 10) / 10
+            }
+        }
+    } else {
+        calculatedChargingPower.value = null
+    }
+}
+
+watch(() => props.carStatus?.car.battery, (newBattery) => {
+    if (!newBattery) {
+        return
+    }
+
+    addBatteryDataPoint(newBattery)
+}, { deep: true, immediate: true })
+
+
+const effectiveChargingPower = computed(() => {
+    const reportedPower = props.carStatus?.car.battery?.charging_power
+    const calculated = calculatedChargingPower.value
+    
+
+    if (calculated && calculated > 0 && calculated < 50) {
+        return {
+            value: calculated,
+            source: 'calculated',
+            confidence: batteryHistory.value.filter(p => p.charging).length >= 3 ? 'high' : 'medium'
+        }
+    }
+    
+
+    if (reportedPower && reportedPower > 0) {
+        return {
+            value: reportedPower,
+            source: 'reported',
+            confidence: 'unknown'
+        }
+    }
+    
+    return null
+})
+
+
+const chartData = computed(() => {
+    if (batteryHistory.value.length < 2) return null
+
+    const data = batteryHistory.value
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map(point => ({
+            x: new Date(point.timestamp),
+            y: point.soc,
+            charging: point.charging
+        }))
+
+    return {
+        datasets: [
+            {
+                label: 'Battery %',
+                data: data,
+                borderColor: 'rgb(59, 130, 246)', 
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: (context) => {
+                    return context.parsed.x === data[data.length - 1]?.x ? 4 : 2
+                },
+                pointHoverRadius: 6,
+                segment: {
+                    borderColor: (ctx) => {
+                        const point = data[ctx.p1DataIndex]
+                        return point?.charging ? 'rgb(34, 197, 94)' : 'rgb(59, 130, 246)'
+                    }
+                }
+            }
+        ]
+    }
+})
+
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        x: {
+            type: 'time',
+            time: {
+                displayFormats: {
+                    minute: 'HH:mm',
+                    hour: 'HH:mm'
+                }
+            },
+            title: {
+                display: true,
+                text: 'Time'
+            }
+        },
+        y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+                display: true,
+                text: 'Battery %'
+            }
+        }
+    },
+    plugins: {
+        legend: {
+            display: false
+        },
+        tooltip: {
+            callbacks: {
+                afterLabel: (context) => {
+                    const point = batteryHistory.value.find(p => 
+                        Math.abs(new Date(p.timestamp).getTime() - context.parsed.x) < 1000
+                    )
+                    return point?.charging ? 'Charging' : 'Not charging'
+                }
+            }
+        }
+    },
+    elements: {
+        point: {
+            hoverBackgroundColor: 'white'
+        }
+    }
+}
+
+const estimatedChargeTime = computed(() => {
+    const power = effectiveChargingPower.value?.value
+    if (!power) return { text: 'Calculating...', completion: null }
+
+    const hoursToCharge = (props.carStatus.car.battery.full_capacity - props.carStatus.car.battery.current_capacity) / power
     const minutesToCharge = Math.ceil(hoursToCharge * 60)
     const completionTime = new Date(Date.now() + minutesToCharge * 60 * 1000)
 
-    // Format completion time
     const timeFormat = new Intl.DateTimeFormat('en', { 
         hour: 'numeric', 
         minute: '2-digit',
@@ -157,6 +411,75 @@ const roughChargeEstimate = computed(() => {
     }
     return { text: timeText, completion: null }
 })
+
+const chargingStats = computed(() => {
+    if (!props.carStatus?.car.battery?.charging || batteryHistory.value.length < 2) return null
+    
+    const now = Date.now()
+    const dataWindowMs = 10 * 60 * 1000
+    const minDataTimeMs = 2 * 60 * 1000
+    
+    const recentData = batteryHistory.value.filter(point => 
+        now - point.timestamp <= dataWindowMs && point.charging
+    )
+    
+    if (recentData.length < 2) return null
+    
+    const oldest = recentData[0]
+    const newest = recentData[recentData.length - 1]    
+    const timeElapsedMs = newest.timestamp - oldest.timestamp
+    
+    if (timeElapsedMs < minDataTimeMs) return null
+      const timeElapsedMinutes = timeElapsedMs / (1000 * 60)
+    const actualPercentGain = newest.soc - oldest.soc
+    
+    const ratePerMinute = actualPercentGain / timeElapsedMinutes
+    
+    const projectedTenMinGain = ratePerMinute * 10    
+    const projectedHourGain = ratePerMinute * 60
+    
+    const tenMinRangeGain = props.carStatus.car.battery.range_wltp && projectedTenMinGain > 0
+        ? Math.round((props.carStatus.car.battery.range_wltp / 100) * projectedTenMinGain * 100) / 100
+        : null
+          const hourRangeGain = props.carStatus.car.battery.range_wltp && projectedHourGain > 0
+        ? Math.round((props.carStatus.car.battery.range_wltp / 100) * projectedHourGain * 100) / 100
+        : null
+    
+    return {
+        percentGain: Math.round(projectedTenMinGain * 100) / 100,
+        rangeGain: tenMinRangeGain,
+        hourPercentGain: Math.round(projectedHourGain * 100) / 100,
+        hourRangeGain: hourRangeGain,
+        accuracy: calculateAccuracy(recentData, timeElapsedMinutes, actualPercentGain),
+        dataPoints: recentData.length,
+        timeWindow: Math.round(timeElapsedMinutes * 10) / 10
+    }
+})
+
+const calculateAccuracy = (dataPoints, timeElapsedMinutes, percentGain) => {
+    const dataPointCount = dataPoints.length
+    const timeWindow = timeElapsedMinutes
+    const changeRate = Math.abs(percentGain)
+      let accuracy = 0
+    
+    const timeScore = Math.min(timeWindow / 10, 1) * 40
+    
+    const dataPointsPerMinute = dataPointCount / timeWindow
+    const densityScore = Math.min(dataPointsPerMinute / 2, 1) * 30
+      let changeScore = 0
+    if (changeRate >= 0.05) {
+        if (changeRate <= 2.0) {
+            changeScore = 30
+        } else {
+            changeScore = Math.max(30 - (changeRate - 2.0) * 5, 10)
+        }
+    } else {
+        changeScore = 10
+    }
+      accuracy = timeScore + densityScore + changeScore
+    
+    return Math.min(Math.max(Math.round(accuracy), 20), 100)
+}
 </script>
 
 <style scoped>

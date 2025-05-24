@@ -31,7 +31,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
 import { useColorMode } from '#imports'
 
 const props = defineProps({
@@ -67,6 +66,7 @@ onMounted(() => {
 
 const address = ref('')
 const isLoadingAddress = ref(false)
+const lastCoordinates = ref({ lat: null, lng: null })
 
 const getAddress = async (lat, lng) => {
     isLoadingAddress.value = true
@@ -76,6 +76,7 @@ const getAddress = async (lat, lng) => {
         )
         const data = await response.json()
         address.value = data.display_name
+        lastCoordinates.value = { lat, lng }
     } catch (error) {
         console.error('Error fetching address:', error)
         address.value = 'Unable to fetch address'
@@ -87,7 +88,11 @@ const getAddress = async (lat, lng) => {
 // Update address when coordinates change
 watch(() => props.carStatus?.car.location, (newLocation) => {
     if (newLocation?.lat && newLocation?.lng) {
-        getAddress(newLocation.lat, newLocation.lng)
+        const { lat, lng } = newLocation
+        // Only fetch address if coordinates have changed
+        if (lastCoordinates.value.lat !== lat || lastCoordinates.value.lng !== lng) {
+            getAddress(lat, lng)
+        }
     }
 }, { immediate: true })
 
