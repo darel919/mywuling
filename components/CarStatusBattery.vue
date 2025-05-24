@@ -66,10 +66,10 @@
                         {{ estimatedChargeTime.text }}
                         <span class="block text-sm text-gray-500 font-normal">(done: {{ estimatedChargeTime.completion }})</span>
                     </p>
-                </div>                
-                <div v-if="carStatus?.car.battery?.charging && effectiveChargingPower && effectiveChargingPower.source === 'calculated' && chargingStats.accuracy > 0" class="col-span-2">
+                </div>                  
+                <div v-if="carStatus?.car.battery?.charging && effectiveChargingPower && effectiveChargingPower.source === 'calculated' && chargingStats?.accuracy > 0" class="col-span-2">
                     <div class="mt-1 text-xs text-success font-semibold">Calculated from data</div>                    
-                    <div class="mt-1 text-xs" v-if="chargingStats.accuracy > 0"  :class="{
+                    <div class="mt-1 text-xs" v-if="chargingStats?.accuracy > 0"  :class="{
                         'text-success': chargingStats?.accuracy >= 80,
                         'text-warning': chargingStats?.accuracy >= 60 && chargingStats?.accuracy < 80, 
                         'text-error': chargingStats?.accuracy < 60
@@ -430,7 +430,8 @@ const chargingStats = computed(() => {
     const timeElapsedMs = newest.timestamp - oldest.timestamp
     
     if (timeElapsedMs < minDataTimeMs) return null
-      const timeElapsedMinutes = timeElapsedMs / (1000 * 60)
+    
+    const timeElapsedMinutes = timeElapsedMs / (1000 * 60)
     const actualPercentGain = newest.soc - oldest.soc
     
     const ratePerMinute = actualPercentGain / timeElapsedMinutes
@@ -438,35 +439,43 @@ const chargingStats = computed(() => {
     const projectedTenMinGain = ratePerMinute * 10    
     const projectedHourGain = ratePerMinute * 60
     
-    const tenMinRangeGain = props.carStatus.car.battery.range_wltp && projectedTenMinGain > 0
+    const tenMinRangeGain = props.carStatus?.car?.battery?.range_wltp && projectedTenMinGain > 0
         ? Math.round((props.carStatus.car.battery.range_wltp / 100) * projectedTenMinGain * 100) / 100
         : null
-          const hourRangeGain = props.carStatus.car.battery.range_wltp && projectedHourGain > 0
+    const hourRangeGain = props.carStatus?.car?.battery?.range_wltp && projectedHourGain > 0
         ? Math.round((props.carStatus.car.battery.range_wltp / 100) * projectedHourGain * 100) / 100
         : null
+    
+    const accuracy = calculateAccuracy(recentData, timeElapsedMinutes, actualPercentGain)
     
     return {
         percentGain: Math.round(projectedTenMinGain * 100) / 100,
         rangeGain: tenMinRangeGain,
         hourPercentGain: Math.round(projectedHourGain * 100) / 100,
         hourRangeGain: hourRangeGain,
-        accuracy: calculateAccuracy(recentData, timeElapsedMinutes, actualPercentGain),
+        accuracy: accuracy || 0,
         dataPoints: recentData.length,
         timeWindow: Math.round(timeElapsedMinutes * 10) / 10
     }
 })
 
 const calculateAccuracy = (dataPoints, timeElapsedMinutes, percentGain) => {
+    if (!dataPoints || !Array.isArray(dataPoints) || dataPoints.length === 0 || !timeElapsedMinutes || timeElapsedMinutes <= 0) {
+        return 0
+    }
+    
     const dataPointCount = dataPoints.length
     const timeWindow = timeElapsedMinutes
-    const changeRate = Math.abs(percentGain)
-      let accuracy = 0
+    const changeRate = Math.abs(percentGain || 0)
+    
+    let accuracy = 0
     
     const timeScore = Math.min(timeWindow / 10, 1) * 40
     
     const dataPointsPerMinute = dataPointCount / timeWindow
     const densityScore = Math.min(dataPointsPerMinute / 2, 1) * 30
-      let changeScore = 0
+    
+    let changeScore = 0
     if (changeRate >= 0.05) {
         if (changeRate <= 2.0) {
             changeScore = 30
@@ -476,9 +485,10 @@ const calculateAccuracy = (dataPoints, timeElapsedMinutes, percentGain) => {
     } else {
         changeScore = 10
     }
-      accuracy = timeScore + densityScore + changeScore
     
-    return Math.min(Math.max(Math.round(accuracy), 20), 100)
+    accuracy = timeScore + densityScore + changeScore
+    
+    return Math.min(Math.max(Math.round(accuracy), 0), 100)
 }
 </script>
 
