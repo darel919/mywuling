@@ -94,12 +94,13 @@ async function handleLogin() {
     try {
         isLoading.value = true
         error.value = ''
-        const response = await fetch(`${config.public.BASE_API_URL}/account/loginWithWulingID`, {
+        const response = await fetch(`${config.public.BASE_API_URL}/account/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+                intent: 'wuling.id',
                 username: username.value,
                 password: password.value
             })

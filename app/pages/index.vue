@@ -2,7 +2,7 @@
     <div class="container py-4 px-6 sm:px-24 mx-auto min-h-screen">
         <ClientOnly>
             <h1 class="text-3xl mb-6">
-                Welcome<span v-if="authStore.userData" class="font-bold">, {{ userName.split(' ')[0] }}!</span>
+                Welcome<span v-if="userName" class="font-bold">, {{ userName.split(' ')[0] }}!</span>
             </h1>
         
             <template v-if="authStore.isLoading">
@@ -12,11 +12,11 @@
                 </div>
             </template>
             <template v-else>
-                <CarList v-if="authStore.isBindOK" />
-                <!-- <div v-else>
-                    <p>Please log in to view your cars.</p>
+                <CarList v-if="authStore.isAuthenticated" />
+                <div v-else class="text-center py-16">
+                    <h3 class="text-2xl font-semibold text-base-content/70">You are not logged in</h3>
                     <NuxtLink to="/auth/login" class="btn btn-primary mt-4">Login</NuxtLink>
-                </div> -->
+                </div>
             </template>
         </ClientOnly>
     </div>
@@ -25,7 +25,7 @@
 <script setup>
 const authStore = useAuthStore()
 const userName = computed(() => {
-    return authStore.userData?.data.user.user_metadata.full_name || ''
+    return authStore.userData?.name || ''
 })
 useHead({
     title: 'Home - DWS-myWULING'

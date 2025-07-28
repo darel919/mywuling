@@ -14,10 +14,16 @@
                 </div>
             </div>
         </template>
+        <template v-if="error">
+            <div class="text-center py-16">
+                <h3 class="text-2xl font-semibold text-error">Failed to load car list.</h3>
+                <p class="text-base-content/60 mt-2">{{ error }}</p>
+            </div>
+        </template>
 
         <template v-else>
-            <div v-if="cars.data.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="car in cars.data" 
+            <div v-if="(cars.data?.length || 0) > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div v-for="car in (cars.data || [])" 
                      :key="car.id" 
                      class="card bg-base-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                      @click="navigateTo(`/car/status?vin=${car.vin}`)">
@@ -96,19 +102,39 @@ const daysUntil = (dateString) => {
 
 onMounted(async () => {
     try {
+        
+        
+        // Wait for auth to be initialized
+        while (authStore.isLoading && !authStore.initialized) {
+            await new Promise(resolve => setTimeout(resolve, 50))
+        }
+        
+        
+        
+        if (!authStore.jwt) {
+            error.value = 'No authentication token available'
+            return
+        }
+        
+        
+        
         const response = await fetch(`${config.public.BASE_API_URL}/car/list`, {
             headers: {
-                'Authorization': `${authStore.jwt}`
+                'Authorization': authStore.jwt
             }
         })
         
+        
+        
+        
         if (!response.ok) {
+            const errorText = await response.text()
             throw new Error('Failed to fetch cars')
         }
         
-        cars.value = await response.json()
+    cars.value = await response.json()
     } catch (err) {
-        error.value = err.message
+    error.value = err.message
     } finally {
         loading.value = false
     }

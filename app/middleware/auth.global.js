@@ -7,17 +7,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const authStore = useAuthStore()
   // Allow /auth/loginWithWulingID and its children as public
-  const publicPaths = ['/auth/login', '/auth', '/about', '/auth/loginWithWulingID']
+  const publicPaths = ['/auth/login', '/auth', '/about', '/auth/loginWithWulingID', '/account/bindDWS']
 
   // Support subroutes (e.g. /auth/loginWithWulingID/anything)
   const isPublic = publicPaths.some(path => to.path === path || to.path.startsWith(path + '/'))
+  
   // Only initialize auth once - on first page load
-  if (!authStore.initialized && typeof authStore.initAuth === 'function') {
-    const maybePromise = authStore.initAuth()
-    if (maybePromise && typeof maybePromise.then === 'function') {
-      await maybePromise
-    }
-    authStore.initialized = true
+  if (!authStore.initialized) {
+    authStore.initAuth()
   }
 
   // Wait for isLoading to become false (hydration)
@@ -30,6 +27,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Recompute isDwsAuthed after hydration
   const isDwsAuthed = authStore.authType === 'dws' && !!authStore.userData
+
+  // Handle DWS users who need to bind their account
+  if (authStore.needsBinding && authStore.authType === 'dws' && to.path !== '/account/bindDWS') {
+    return navigateTo('/account/bindDWS')
+  }
 
   // Redirect authenticated users away from /auth/login
   if ((authStore.isAuthenticated || isDwsAuthed) && to.path === '/auth/login') {

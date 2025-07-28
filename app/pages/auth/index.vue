@@ -28,13 +28,29 @@ onMounted(async () => {
   try {
     const at = route.query.at
     const rt = route.query.rt
-    if (at && rt) {
-      const response = await fetch(`${config.public.API_DARELISME_URL}/dws/user?loginWithCookies=true`, {
-        credentials: 'include'
-      })
-      if (!response.ok) throw new Error('Failed to authenticate with backend')
-      const data = await response.json()
-      authStore.setAuth(at, data.data, 'dws')
+    if (at) {
+      let response, data
+      try {
+        response = await Promise.race([
+          fetch(`${config.public.API_DARELISME_URL}/auth/verify?at=${encodeURIComponent(at)}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 5000))
+        ])
+      } catch (fetchErr) {
+        console.error('Fetch error:', fetchErr)
+        throw new Error('Failed to connect to backend (timeout or network error)')
+      }
+      if (!response.ok) {
+        let errText = await response.text().catch(() => '')
+        console.error('Backend error:', response.status, errText)
+        throw new Error('Failed to authenticate with backend')
+      }
+      try {
+        data = await response.json()
+      } catch (jsonErr) {
+        console.error('JSON parse error:', jsonErr)
+        throw new Error('Invalid response from backend')
+      }
+      authStore.setAuth(at, data.user?.user_metadata || null, 'dws')
       window.localStorage.setItem('authSuccess', 'true')
       if (window.opener) {
         try {
@@ -61,6 +77,7 @@ onMounted(async () => {
       setTimeout(() => router.replace('/auth/login'), 3000)
     }
   } catch (err) {
+    console.error('Auth verify error:', err)
     error.value = 'Authentication error: ' + (err.message || err)
     setTimeout(() => router.replace('/auth/login'), 3000)
   } finally {

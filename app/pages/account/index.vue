@@ -112,29 +112,43 @@ const router = useRouter()
 const isLoading = ref(true)
 
 watch(() => authStore.userData, (userData) => {
-    if (userData) {
+    if (userData && (userData.userName || userData.data?.user?.user_metadata?.full_name)) {
+        const name = userData.userName || userData.data?.user?.user_metadata?.full_name || ''
         useHead({
-            title: `${userData.userName}'s Account - dws-myWULING`
+            title: `${name}'s Account - dws-myWULING`
         })
     }
 }, { immediate: true })
 
+
+const wulingUserData = computed(() => {
+    // Try to extract wuling user data from userData for both auth types
+    if (authStore.authType === 'dws') {
+        // For DWS users, userData should be the user_metadata directly
+        return authStore.userData || {};
+    } else if (authStore.authType === 'wuling.id') {
+        return authStore.userData || {};
+    }
+    return {};
+});
+
 const avatar = computed(() => {
     if(authStore.authType === 'dws') {
-        return authStore.userData?.data?.user?.user_metadata?.avatar_url
+        return wulingUserData.value.avatar || wulingUserData.value.avatar_url || null;
     } else if(authStore.authType === 'wuling.id') {
-        return authStore.userData?.iconsPhoto
+        return wulingUserData.value.iconsPhoto || null;
     }
     return null;
-})
+});
+
 const username = computed(() => {
     if(authStore.authType === 'dws') {
-        return authStore.userData?.data?.user?.user_metadata?.full_name
+        return wulingUserData.value.name || wulingUserData.value.full_name || null;
     } else if(authStore.authType === 'wuling.id') {
-        return authStore.userData?.userName
+        return wulingUserData.value.userName || null;
     }
     return null;
-})
+});
 
 onMounted(async () => {
     if (!authStore.userData) {

@@ -59,9 +59,8 @@ function openLoginWindow(redirectPath, onAuthCancelled) {
     sessionStorage.removeItem('redirectionCompleted');
     sessionStorage.removeItem('authCancelled');
     localStorage.removeItem('authSuccess');
-    const darelismeUrl = config.public.DARELISME_URL;
-    const redirectUrl = encodeURIComponent(`${window.location.origin}/auth`);
-    const authUrl = `${darelismeUrl}/auth/login?redirectExternal=${redirectUrl}`;
+    const clientUrl = encodeURIComponent(window.location.origin);
+    const authUrl = `https://account.darelisme.my.id/start?rUrl=${clientUrl}/auth`;
     const loginWindow = window.open(authUrl, 'darelismeLogin', 'width=600,height=700');
     if (!loginWindow) {
         alert('Please allow popups for this site to enable login');
