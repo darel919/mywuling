@@ -30,4 +30,23 @@ const userName = computed(() => {
 useHead({
     title: 'Home - DWS-myWULING'
 })
+
+onMounted(async () => {
+    // Wait for auth initialization
+    while (authStore.isLoading && !authStore.initialized) {
+        await new Promise(r => setTimeout(r, 50))
+    }
+    try {
+        const alreadyRedirected = sessionStorage.getItem('defaultRedirectDone') === '1'
+        const defaultVin = localStorage.getItem('defaultCarVin')
+        if (!alreadyRedirected && defaultVin && authStore.isAuthenticated) {
+            // Navigate to default car details once per session
+            const router = useRouter()
+            sessionStorage.setItem('defaultRedirectDone', '1')
+            router.replace({ path: '/car/status', query: { vin: defaultVin } })
+        }
+    } catch (e) {
+        // ignore storage errors
+    }
+})
 </script>

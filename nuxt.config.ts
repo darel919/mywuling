@@ -7,11 +7,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // BASE_API_URL: 'https://api.darelisme.my.id/myWuling',
-      BASE_API_URL: 'http://localhost:328/mywuling',
+      BASE_API_URL: 'https://api.darelisme.my.id/mywuling',
       DARELISME_URL: 'https://darelisme.my.id',
-      // API_DARELISME_URL: 'https://api.darelisme.my.id',
-      API_DARELISME_URL: 'http://localhost:328',
+      API_DARELISME_URL: 'https://api.darelisme.my.id',
     }
   },
   build: {
@@ -25,10 +23,29 @@ export default defineNuxtConfig({
       include: ['vue-router']
     }
   },
-
   modules: [
     '@pinia/nuxt',
     '@nuxtjs/leaflet',
-    '@nuxtjs/color-mode'
-  ]
+    '@nuxtjs/color-mode',
+    '@vite-pwa/nuxt'
+  ],
+  pwa: {
+    manifest: {
+      name: 'DWS-MyWuling',
+      short_name: 'myWuling',
+      description: 'Your wuling companion app',
+      lang: 'en',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#e11d48',
+      icons: [
+        {
+          src: 'public/favicon.ico',
+        },
+      ],
+    },
+    devOptions: {
+      enabled: true,
+    },
+  }
 })

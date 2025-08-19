@@ -7,7 +7,7 @@
         </div>
        <ClientOnly>
             <div class="navbar-end ml-auto flex items-center">
-                <NuxtLink to="/account" v-if="authStore.isAuthenticated && avatar">
+                <NuxtLink to="/settings" v-if="authStore.isAuthenticated && avatar">
                     <img :src="avatar" class="w-8 h-8 rounded-full mr-2" alt="avatar" />
                 </NuxtLink>
                 <template v-else>

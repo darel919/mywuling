@@ -1,8 +1,6 @@
 <template>
     <ClientOnly>
         <div v-if="carStatus?.car.location?.lat && carStatus?.car.location?.lng" class="card bg-base-100 shadow-xl">
-            <!-- <div class="card-body">
-                <h3 class="card-title">Location</h3> -->
                 <div class="h-[400px] w-full rounded-xl overflow-hidden">
                     <LMap ref="map" :useGlobalLeaflet="false" @ready="onMapReady">
                         <LTileLayer
@@ -26,7 +24,6 @@
                     <p v-else-if="isLoadingAddress" class="text-sm">Loading address...</p>
                 </div>
             </div>
-        <!-- </div> -->
     </ClientOnly>
 </template>
 

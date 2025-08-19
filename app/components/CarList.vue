@@ -23,9 +23,9 @@
 
         <template v-else>
             <div v-if="(cars.data?.length || 0) > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div v-for="car in (cars.data || [])" 
+             <div v-for="car in (cars.data || [])" 
                      :key="car.id" 
-                     class="card bg-base-100 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                 :class="[ 'card', 'relative', 'bg-base-100', 'shadow-lg', 'hover:shadow-2xl', 'transition-all', 'duration-300', 'transform', 'hover:-translate-y-1', isDefault(car) ? 'ring ring-primary ring-offset-base-100 ring-offset-2' : '' ]"
                      @click="navigateTo(`/car/status?vin=${car.vin}`)">
                     <figure class="px-6 pt-6">
                         <img :src="car.picUrl" 
@@ -45,6 +45,10 @@
                         <h3 v-else class="text-xl -mt-2 text-primary font-medium">
                             {{  car.modelName }}
                         </h3>                       
+                        <!-- Default badge -->
+                        <div v-if="isDefault(car)" class="absolute top-4 right-4">
+                            <span class="badge badge-primary">Default</span>
+                        </div>
                         <section v-if="car.stnkTaxDate" class="font-mono">
                             <p class="text-sm">STNK Tax Date: {{ car.stnkTaxDate }} </p>                            <p :class="{ 'text-orange-500': daysUntil(car.stnkTaxDate).warning }">
                                 ({{ daysUntil(car.stnkTaxDate).value < 0 ? '' : 'in ' }}{{ Math.abs(daysUntil(car.stnkTaxDate).value) }} {{ daysUntil(car.stnkTaxDate).unit }}{{ daysUntil(car.stnkTaxDate).value < 0 ? ' ago' : '' }})
@@ -75,6 +79,24 @@ const authStore = useAuthStore()
 const cars = ref([])
 const loading = ref(true)
 const error = ref(null)
+const defaultVin = ref('')
+
+function loadDefaultVin() {
+    if (typeof window === 'undefined') return
+    defaultVin.value = localStorage.getItem('defaultCarVin') || ''
+}
+
+function isDefault(car) {
+    return car && car.vin && defaultVin.value && car.vin === defaultVin.value
+}
+
+// listen for changes in other tabs
+if (typeof window !== 'undefined') {
+    loadDefaultVin()
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'defaultCarVin') loadDefaultVin()
+    })
+}
 
 const daysUntil = (dateString) => {
     if (!dateString) return { value: 0, unit: 'days', warning: false }
@@ -101,40 +123,87 @@ const daysUntil = (dateString) => {
 }
 
 onMounted(async () => {
-    try {
-        
-        
+    let retried = false
+    async function fetchCarList() {
         // Wait for auth to be initialized
         while (authStore.isLoading && !authStore.initialized) {
             await new Promise(resolve => setTimeout(resolve, 50))
         }
-        
-        
-        
         if (!authStore.jwt) {
             error.value = 'No authentication token available'
             return
         }
-        
-        
-        
         const response = await fetch(`${config.public.BASE_API_URL}/car/list`, {
             headers: {
                 'Authorization': authStore.jwt
             }
         })
-        
-        
-        
-        
-        if (!response.ok) {
-            const errorText = await response.text()
-            throw new Error('Failed to fetch cars')
+        let data
+        try {
+            data = await response.json()
+        } catch {
+            data = null
         }
-        
-    cars.value = await response.json()
+        if (
+            (data && data.error === 'Unable to get car list' && data.message === 'JWT is invalid') ||
+            (!response.ok && data && data.message === 'JWT is invalid')
+        ) {
+            // Avoid full page reload loops. Try to recover:
+            // - If DWS auth, attempt to refresh JWT via store.fetchUserData()
+            // - If refresh fails with NEEDS_BINDING, send user to bind flow
+            // - Otherwise clear auth and redirect to login
+            if (!retried) {
+                retried = true
+                if (authStore.authType === 'dws') {
+                    try {
++                        await authStore.fetchUserData()
+                        // retry once after refreshing JWT
+                        return await fetchCarList()
+                    } catch (e) {
+                        if (e && e.message === 'NEEDS_BINDING') {
+                            authStore.needsBinding = true
+                            error.value = 'Your session needs rebinding. Redirecting to bind screen...'
+                            setTimeout(() => {
+                                window.location.href = '/account/bindDWS'
+                            }, 1000)
+                            return
+                        }
+                        // Failed to refresh - clear and send to login
+                        authStore.clearAuth()
+                        error.value = 'Your session has expired. Please sign in again.'
+                        setTimeout(() => {
+                            window.location.href = '/auth/login'
+                        }, 1000)
+                        return
+                    }
+                } else {
+                    // Non-DWS (wuling.id) - clear and redirect to login
+                    authStore.clearAuth()
+                    error.value = 'Your session has expired. Please sign in again.'
+                    setTimeout(() => {
+                        window.location.href = '/auth/login'
+                    }, 1000)
+                    return
+                }
+            } else {
+                // Fallback: if we already retried, send user to bind screen
+                error.value = 'Your session has expired or is invalid. Please rebind your Wuling.id account.'
+                setTimeout(() => {
+                    window.location.href = '/account/bindDWS'
+                }, 2000)
+                return
+            }
+        }
+        if (!response.ok) {
+            error.value = 'Failed to fetch cars'
+            return
+        }
+        cars.value = data
+    }
+    try {
+        await fetchCarList()
     } catch (err) {
-    error.value = err.message
+        error.value = err.message
     } finally {
         loading.value = false
     }

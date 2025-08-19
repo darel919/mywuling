@@ -129,6 +129,12 @@
                                     Service History
                                 </NuxtLink>
                             </div>
+                            <div class="mt-2" v-if="route.query.vin">
+                                <button class="btn btn-outline w-full" @click="toggleDefault">
+                                    <span v-if="isDefault">Remove from Default</span>
+                                    <span v-else>Set as Default</span>
+                                </button>
+                            </div>
 
                             <div class="collapse bg-base-200 mt-4">
                                 <input type="checkbox" :checked="!carInfo?.car.isEV && !carInfo?.car.isIOV" /> 
@@ -401,11 +407,11 @@ watch(() => carInfo.value, (newInfo) => {
         
         let refreshTime
         if (isCharging) {
-            refreshTime = 30000
+            refreshTime = 45000
         } else if (isIgnitionOn) {
             refreshTime = 15000
         } else {
-            refreshTime = 45000
+            refreshTime = 60000
         }
         
         refreshStatus()
@@ -428,12 +434,18 @@ watch(() => carInfo.value, (newInfo) => {
     }
 }, { immediate: true })
 
-watch(() => carInfo.value?.car_name, (carName) => {
-    if (carName) {
-        useHead({
-            title: `${carName} - dws-myWULING`
-        })
-    }
+// Update document title to "License Plate - Car Name" when either value becomes available
+watch([
+    () => carInfo.value?.car?.licensePlate,
+    () => carInfo.value?.car?.car_name
+], ([licensePlate, carName]) => {
+    const parts = []
+    if (licensePlate) parts.push(licensePlate)
+    if (carName) parts.push(carName)
+
+    // Use useHead so Nuxt updates the document title reactively
+    const title = parts.length ? parts.join(' - ') : 'Car Status'
+    useHead({ title })
 }, { immediate: true })
 
 watch(() => carInfo.value?.car?.modelCode, (modelCode) => {
@@ -447,4 +459,45 @@ onUnmounted(() => {
         clearInterval(refreshInterval)
     }
 })
+
+function setAsDefault() {
+    const vin = route.query.vin
+    if (!vin) return
+    try {
+        localStorage.setItem('defaultCarVin', vin)
+        // tiny visual confirmation
+        alert('Default car set')
+    } catch (e) {
+        console.error('Failed to set default car', e)
+    }
+}
+
+const isDefault = computed(() => {
+    try {
+        const vin = route.query.vin || ''
+        const saved = (typeof window !== 'undefined') ? localStorage.getItem('defaultCarVin') || '' : ''
+        return !!vin && saved === vin
+    } catch (e) {
+        return false
+    }
+})
+
+function toggleDefault() {
+    const vin = route.query.vin
+    if (!vin) return
+    try {
+        const saved = localStorage.getItem('defaultCarVin')
+        if (saved === vin) {
+            localStorage.removeItem('defaultCarVin')
+            alert('Default removed')
+        } else {
+            localStorage.setItem('defaultCarVin', vin)
+            alert('Default set')
+        }
+        // trigger storage event for same-tab updates
+        window.dispatchEvent(new StorageEvent('storage', { key: 'defaultCarVin', newValue: localStorage.getItem('defaultCarVin') }))
+    } catch (e) {
+        console.error('Failed to toggle default car', e)
+    }
+}
 </script>

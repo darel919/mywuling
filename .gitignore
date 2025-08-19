@@ -25,3 +25,4 @@ logs
 
 version.js
 public/version-info.json
+sw.*

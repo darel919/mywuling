@@ -172,6 +172,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         if (error.message === 'NEEDS_BINDING') {
           // Don't clear auth for binding issues
+          console.warn('Auth.fetchUserData: DWS user requires binding')
           throw error
         }
         this.clearAuth()

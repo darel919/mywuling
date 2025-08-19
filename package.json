@@ -1,6 +1,6 @@
 {
   "name": "dws-mywuling",
-  "version": "1.0.11",
+  "version": "1.0.2",
   "description": "DWS-myWULING web app",
   "author": "darelisme",
   "private": true,
@@ -15,19 +15,20 @@
   "dependencies": {
     "@nuxtjs/color-mode": "^3.5.2",
     "@pinia/nuxt": "^0.11.2",
-    "@tailwindcss/vite": "^4.1.11",
+    "@tailwindcss/vite": "^4.1.12",
+    "@vite-pwa/nuxt": "^1.0.4",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",
     "date-fns": "^4.1.0",
-    "nuxt": "^4.0.1",
+    "nuxt": "^4.0.3",
     "pinia": "^3.0.3",
-    "tailwindcss": "^4.1.11",
+    "tailwindcss": "^4.1.12",
     "vue": "^3.5.18",
     "vue-chartjs": "^5.3.2",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@nuxtjs/leaflet": "^1.3.1",
-    "daisyui": "^5.0.48"
+    "@nuxtjs/leaflet": "^1.3.2",
+    "daisyui": "^5.0.50"
   }
 }

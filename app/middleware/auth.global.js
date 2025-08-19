@@ -30,7 +30,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Handle DWS users who need to bind their account
   if (authStore.needsBinding && authStore.authType === 'dws' && to.path !== '/account/bindDWS') {
-    return navigateTo('/account/bindDWS')
+    try {
+      // Prevent redirect loops by only redirecting once per session.
+      // This flag is cleared by the bind page after a successful bind.
+      if (typeof window !== 'undefined') {
+        const alreadyRedirected = sessionStorage.getItem('bindRedirected') === 'true'
+        if (!alreadyRedirected) {
+          sessionStorage.setItem('bindRedirected', 'true')
+          return navigateTo('/account/bindDWS')
+        }
+      }
+    } catch (e) {
+      // Fail silently and avoid blocking navigation
+    }
   }
 
   // Redirect authenticated users away from /auth/login

@@ -75,7 +75,14 @@ function openLoginWindow(redirectPath, onAuthCancelled) {
                 localStorage.removeItem('authSuccess');
                 clearInterval(checkWindowClosed);
                 authDetected = true;
-                window.location.reload();
+                // Prevent repeated reload loops by marking that we already reloaded for this auth session
+                if (typeof window !== 'undefined') {
+                    const reloaded = sessionStorage.getItem('authReloaded') === 'true'
+                    if (!reloaded) {
+                        sessionStorage.setItem('authReloaded', 'true')
+                        window.location.reload();
+                    }
+                }
                 return;
             }
             if (loginWindow.closed) {
@@ -83,7 +90,13 @@ function openLoginWindow(redirectPath, onAuthCancelled) {
                 if (localStorage.getItem('authSuccess') === 'true') {
                     localStorage.removeItem('authSuccess');
                     authDetected = true;
-                    window.location.reload();
+                    if (typeof window !== 'undefined') {
+                        const reloaded = sessionStorage.getItem('authReloaded') === 'true'
+                        if (!reloaded) {
+                            sessionStorage.setItem('authReloaded', 'true')
+                            window.location.reload();
+                        }
+                    }
                 } else {
                     sessionStorage.setItem('authCancelled', 'true');
                     if (onAuthCancelled) onAuthCancelled('Login window was closed');
