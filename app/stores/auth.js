@@ -11,6 +11,12 @@ export const useAuthStore = defineStore('auth', {
     initialized: false,
   }),
   actions: {
+    redirectToBindPage() {
+      if (typeof window === 'undefined') return
+      if (window.location.pathname !== '/account/bindDWS') {
+        window.location.replace('/account/bindDWS')
+      }
+    },
     setAuth(jwt, userData, authType = 'dws') {
       this.jwt = jwt
       this.userData = userData
@@ -87,6 +93,7 @@ export const useAuthStore = defineStore('auth', {
           if (error.message === 'NEEDS_BINDING' && this.authType === 'dws') {
             // User needs to bind but stays authenticated
             this.needsBinding = true
+            this.redirectToBindPage()
           }
         })
       } else {
@@ -157,11 +164,24 @@ export const useAuthStore = defineStore('auth', {
           }
           const data = await response.json()
           this.jwt = data.jwt
-          // DO NOT replace userData - keep the original DWS userData from /verify
-          // this.userData = data.userData || this.userData
+          const fetchedUserData = data.userData && typeof data.userData === 'object'
+            ? data.userData
+            : null
+
+          if (fetchedUserData) {
+            const mergedUserData = { ...(this.userData || {}) }
+            Object.entries(fetchedUserData).forEach(([key, value]) => {
+              if (value !== null && value !== undefined && value !== '') {
+                mergedUserData[key] = value
+              } else if (!(key in mergedUserData)) {
+                mergedUserData[key] = value
+              }
+            })
+            this.userData = mergedUserData
+          }
+
           if (typeof window !== 'undefined') {
             localStorage.setItem('jwt', this.jwt)
-            // Keep existing userData, don't overwrite it
             localStorage.setItem('userData', JSON.stringify(this.userData))
           }
           return this.userData
@@ -173,6 +193,8 @@ export const useAuthStore = defineStore('auth', {
         if (error.message === 'NEEDS_BINDING') {
           // Don't clear auth for binding issues
           console.warn('Auth.fetchUserData: DWS user requires binding')
+          this.needsBinding = true
+          this.redirectToBindPage()
           throw error
         }
         this.clearAuth()

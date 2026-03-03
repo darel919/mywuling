@@ -45,12 +45,39 @@
 <script setup>
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
-const router = useRouter()
 const isLoggingIn = ref(false)
 const loginError = ref('')
 
 useHead({
     title: 'Login to dws-myWULING'
+})
+
+onMounted(async () => {
+    // Fallback guard: if DWS account requires binding, do not keep user on login page.
+    if (!authStore.initialized) {
+        authStore.initAuth()
+    }
+
+    let waited = 0
+    while (authStore.isLoading && waited < 4000) {
+        await new Promise(r => setTimeout(r, 10))
+        waited += 10
+    }
+
+    if (authStore.authType === 'dws' && authStore.userData) {
+        if (authStore.needsBinding) {
+            await navigateTo('/account/bindDWS', { replace: true })
+            return
+        }
+
+        try {
+            await authStore.fetchUserData()
+        } catch (error) {
+            if (error?.message === 'NEEDS_BINDING') {
+                await navigateTo('/account/bindDWS', { replace: true })
+            }
+        }
+    }
 })
 
 function openLoginWindow(redirectPath, onAuthCancelled) {

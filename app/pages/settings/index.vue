@@ -22,6 +22,47 @@
 
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
+                    <h2 class="card-title">Binded myWULING Account Data</h2>
+                    <template v-if="isLoading">
+                        <div class="skeleton h-4 w-full"></div>
+                        <div class="skeleton h-4 w-5/6 mt-2"></div>
+                        <div class="skeleton h-4 w-2/3 mt-2"></div>
+                    </template>
+                    <template v-else>
+                        <div v-if="hasProfileData" class="mt-2 space-y-2 text-sm">
+                            <div class="flex items-center gap-3 pb-2">
+                                <div class="avatar">
+                                    <div class="w-12 rounded-full bg-base-200 overflow-hidden">
+                                        <img v-if="avatarUrl" :src="avatarUrl" :alt="displayValue(profileSnapshot.userName)" />
+                                        <div v-else class="w-full h-full flex items-center justify-center text-sm font-semibold text-base-content/70">
+                                            {{ avatarInitial }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="font-semibold text-base">{{ displayValue(profileSnapshot.userName) }}</p>
+                            </div>
+                            <p><span class="font-semibold">User ID:</span> {{ displayValue(profileSnapshot.userId) }}</p>
+                            <p><span class="font-semibold">User Name:</span> {{ displayValue(profileSnapshot.userName) }}</p>
+                            <p><span class="font-semibold">Nickname:</span> {{ displayValue(profileSnapshot.nickname) }}</p>
+                            <p><span class="font-semibold">Email:</span> {{ displayValue(profileSnapshot.email) }}</p>
+                            <p><span class="font-semibold">Phone:</span> {{ displayValue(profileSnapshot.phone) }}</p>
+                            <p><span class="font-semibold">Birthday:</span> {{ displayValue(profileSnapshot.birthday) }}</p>
+                            <p><span class="font-semibold">Address:</span> {{ displayValue(profileSnapshot.address) }}</p>
+                            <p><span class="font-semibold">Driver No:</span> {{ displayValue(profileSnapshot.driverNo) }}</p>
+                            <p><span class="font-semibold">Points:</span> {{ displayValue(profileSnapshot.points) }}</p>
+                            <p><span class="font-semibold">Grade:</span> {{ displayValue(profileSnapshot.grade) }}</p>
+                            <p><span class="font-semibold">Vehicle Count:</span> {{ displayValue(profileSnapshot.vehicleCount) }}</p>
+                            <p><span class="font-semibold">Owner:</span> {{ displayValue(profileSnapshot.owner) }}</p>
+                            <p><span class="font-semibold">License Expiry:</span> {{ displayValue(profileSnapshot.driverLicenseExpired) }}</p>
+                            <p><span class="font-semibold">Last Sign In:</span> {{ displayValue(profileSnapshot.lastSignTime) }}</p>
+                        </div>
+                        <div v-else class="text-sm text-gray-500">No binded myWULING account data available</div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
                     <h2 class="card-title">Default Car</h2>
                     <p class="text-sm text-gray-500 mb-4">Choose a default car to open automatically on app load.</p>
 
@@ -71,6 +112,55 @@ const username = computed(() => {
     return authStore.userData?.name || authStore.userData?.userName || ''
 })
 
+const avatarUrl = computed(() => {
+    const user = authStore.userData || {}
+    return user.iconsPhoto || user.avatar || user.avatar_url || ''
+})
+
+const avatarInitial = computed(() => {
+    return (username.value || '?').trim().charAt(0).toUpperCase() || '?'
+})
+
+const jwtPayload = computed(() => {
+    if (!authStore.jwt) return {}
+
+    try {
+        return JSON.parse(atob(authStore.jwt.split('.')[1]))
+    } catch {
+        return {}
+    }
+})
+
+const profileSnapshot = computed(() => {
+    const user = authStore.userData || {}
+    const jwt = jwtPayload.value || {}
+
+    return {
+        userId: user.userId || jwt.userId || jwt.sub || '',
+        userName: user.userName || user.name || jwt.userName || jwt.name || jwt.username || '',
+        nickname: user.nickname || '',
+        email: user.email || jwt.email || '',
+        phone: user.phone || user.mobilePhone || jwt.telPhone || jwt.mobilePhone || '',
+        birthday: user.birthday || '',
+        address: user.address || '',
+        driverNo: user.driverNo || '',
+        points: user.points || '',
+        grade: user.grade || '',
+        vehicleCount: user.countcar || user.countCar || '',
+        owner: user.owner === '1' ? 'Yes' : user.owner === '0' ? 'No' : '',
+        driverLicenseExpired: user.driverLicenseExpired || '',
+        lastSignTime: user.lastSignTime || ''
+    }
+})
+
+const hasProfileData = computed(() => {
+    return Object.values(profileSnapshot.value).some(value => !!value)
+})
+
+function displayValue(value) {
+    return value || '-'
+}
+
 async function fetchCars() {
     loadingCars.value = true
     if (!authStore.jwt) {
@@ -112,7 +202,7 @@ function clearDefault() {
 }
 
 onMounted(async () => {
-    if (!authStore.userData) {
+    if (authStore.jwt) {
         try { await authStore.fetchUserData() } catch (e) { }
     }
     await fetchCars()

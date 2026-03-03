@@ -7,9 +7,20 @@
         </div>
        <ClientOnly>
             <div class="navbar-end ml-auto flex items-center">
-                <NuxtLink to="/settings" v-if="authStore.isAuthenticated && avatar">
-                    <img :src="avatar" class="w-8 h-8 rounded-full mr-2" alt="avatar" />
-                </NuxtLink>
+                <div v-if="authStore.isAuthenticated" class="dropdown dropdown-end">
+                    <button tabindex="0" class="btn btn-ghost btn-circle avatar" aria-label="Open profile menu">
+                        <div class="w-8 rounded-full">
+                            <img v-if="avatar" :src="avatar" alt="avatar" />
+                            <div v-else class="w-full h-full rounded-full bg-base-300 flex items-center justify-center text-xs font-semibold">
+                                {{ userInitial }}
+                            </div>
+                        </div>
+                    </button>
+                    <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-40 p-2 shadow">
+                        <li><NuxtLink to="/settings">Settings</NuxtLink></li>
+                        <li><button @click="handleLogout">Logout</button></li>
+                    </ul>
+                </div>
                 <template v-else>
                     <NuxtLink to="/auth/login" class="btn btn-primary btn-sm">Login</NuxtLink>
                 </template>
@@ -20,25 +31,26 @@
 
 <script setup>
 const authStore = useAuthStore()
+const router = useRouter()
 
 const avatar = computed(() => {
-    console.log('Navbar - authStore.isAuthenticated:', authStore.isAuthenticated)
-    console.log('Navbar - authStore.jwt:', !!authStore.jwt)
-    console.log('Navbar - authStore.userData:', !!authStore.userData)
-    console.log('Navbar - authStore.authType:', authStore.authType)
-    console.log('Navbar - authStore.needsBinding:', authStore.needsBinding)
-    
     if (!authStore.isAuthenticated) return null
     
     if (authStore.authType === 'dws') {
-        const avatarUrl = authStore.userData?.avatar || authStore.userData?.avatar_url || null
-        console.log('Navbar - DWS avatar:', avatarUrl)
-        return avatarUrl
+        return authStore.userData?.avatar || authStore.userData?.avatar_url || null
     } else if (authStore.authType === 'wuling.id') {
-        const avatarUrl = authStore.userData?.iconsPhoto || null
-        console.log('Navbar - Wuling avatar:', avatarUrl)
-        return avatarUrl
+        return authStore.userData?.iconsPhoto || null
     }
     return null
 })
+
+const userInitial = computed(() => {
+    const name = authStore.userData?.name || authStore.userData?.full_name || authStore.userData?.userName || 'U'
+    return String(name).trim().charAt(0).toUpperCase() || 'U'
+})
+
+async function handleLogout() {
+    authStore.clearAuth()
+    await router.push('/auth/login')
+}
 </script>

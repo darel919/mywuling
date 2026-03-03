@@ -70,11 +70,6 @@ async function handleBind() {
     // Save ONLY the JWT while preserving existing DWS userData and authType
     authStore.setAuth(loginData.jwt, authStore.userData, authStore.authType)
     authStore.needsBinding = false
-    
-    // Clear redirect guard so future binding redirects can happen again if needed
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('bindRedirected')
-    }
 
   // Redirect to settings page
   await router.replace('/settings')
